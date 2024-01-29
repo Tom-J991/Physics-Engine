@@ -2,9 +2,13 @@
 
 #include "Common.h"
 
+#include "Gizmos.h"
 #include "Texture.h"
 #include "Font.h"
 #include "Input.h"
+
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 Application2D::Application2D() 
 { }
@@ -13,9 +17,14 @@ Application2D::~Application2D()
 
 bool Application2D::startup() 
 {
+	aie::Gizmos::create(255U, 255U, 65535U, 65535U);
+
 	m_2dRenderer = new aie::Renderer2D();
 
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
+
+	m_physicsScene = new PhysicsScene();
+	m_physicsScene->SetTimeStep(0.01f);
 
 	return true;
 }
@@ -28,6 +37,11 @@ void Application2D::shutdown()
 void Application2D::update(float deltaTime) 
 {
 	aie::Input* input = aie::Input::getInstance();
+
+	aie::Gizmos::clear();
+
+	m_physicsScene->Update(deltaTime);
+	m_physicsScene->Draw();
 
 	// exit the application
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
@@ -42,7 +56,11 @@ void Application2D::draw()
 
 	// begin drawing sprites
 	m_2dRenderer->begin();
+
+	static float aspectRatio = 16.f / 9.f;
 	
+	aie::Gizmos::draw2D(glm::ortho<float>(-100, 100, -100 / aspectRatio, 100 / aspectRatio, -1.0f, 1.0f));
+
 	// output some text, uses the last used colour
 	char fps[32];
 	sprintf_s(fps, 32, "FPS: %i", getFPS());
