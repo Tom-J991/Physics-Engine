@@ -18,8 +18,8 @@ public:
 	virtual void draw();
 
 protected:
-	aie::Renderer2D *m_2dRenderer;
+	aie::Renderer2D *m_2dRenderer = nullptr;
 
-	PhysicsScene *m_physicsScene;
+	PhysicsScene *m_physicsScene = nullptr;
 
 };

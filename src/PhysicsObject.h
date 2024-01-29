@@ -2,7 +2,14 @@
 
 #include <glm/glm.hpp>
 
-class PhysicsObject
+enum ShapeType
+{
+	PLANE = 0,
+	SPHERE,
+	BOX
+};
+
+class PhysicsObject // Abstract class to specify objects within the physics scene.
 {
 public:
 	virtual void FixedUpdate(glm::vec2 gravity, float timeStep) = 0;
@@ -10,6 +17,9 @@ public:
 	virtual void ResetPosition() { };
 
 protected:
-	PhysicsObject() { }
+	PhysicsObject(ShapeType a_shapeID) : m_shapeID(a_shapeID) { }
+
+protected:
+	ShapeType m_shapeID;
 
 };

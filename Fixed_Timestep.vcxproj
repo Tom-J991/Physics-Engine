@@ -88,6 +88,8 @@
     <ClCompile Include="src\Application2D.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\PhysicsScene.cpp" />
+    <ClCompile Include="src\RigidBody.cpp" />
+    <ClCompile Include="src\Sphere.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="external\aieBootstrap\bootstrap\Bootstrap.vcxproj">
@@ -99,6 +101,8 @@
     <ClInclude Include="src\Common.h" />
     <ClInclude Include="src\PhysicsObject.h" />
     <ClInclude Include="src\PhysicsScene.h" />
+    <ClInclude Include="src\RigidBody.h" />
+    <ClInclude Include="src\Sphere.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
