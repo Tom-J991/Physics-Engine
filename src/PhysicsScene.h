@@ -20,17 +20,23 @@ public:
 	void Update(float deltaTime);
 	void Draw();
 
-	static bool Sphere2Sphere(PhysicsObject *obj1, PhysicsObject *obj2); // Sphere-Sphere collision stuff.
+	float GetTotalEnergy();
+
+	// Collision between different objects.
+	static bool Plane2Plane(PhysicsObject *, PhysicsObject *);
+	static bool Plane2Sphere(PhysicsObject *, PhysicsObject *);
+	static bool Sphere2Plane(PhysicsObject *, PhysicsObject *);
+	static bool Sphere2Sphere(PhysicsObject *, PhysicsObject *);
 
 	void SetGravity(const glm::vec2 gravity) { m_gravity = gravity; }
-	glm::vec2 GetGravity() const { return m_gravity; }
+	glm::vec2 GetGravity() { return m_gravity; }
 
 	void SetTimeStep(const float timeStep) { m_timeStep = timeStep; }
 	float GetTimeStep() const { return m_timeStep; }
 
 protected:
-	float m_timeStep;
 	glm::vec2 m_gravity; // Global gravity.
+	float m_timeStep;
 
 	std::vector<PhysicsObject *> m_actors;
 

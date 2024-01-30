@@ -1,5 +1,7 @@
 #include "Application2D.h"
 
+#include <iostream>
+
 #include "Common.h"
 
 #include "Gizmos.h"
@@ -9,12 +11,14 @@
 
 #include "RigidBody.h"
 #include "Sphere.h"
+#include "Plane.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
 Sphere *ball1;
 Sphere *ball2;
+Plane *plane;
 
 Application2D::Application2D() 
 { }
@@ -30,14 +34,16 @@ bool Application2D::startup()
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
 
 	m_physicsScene = new PhysicsScene();
-	m_physicsScene->SetGravity({ 0.0f, 0.0f });
-	m_physicsScene->SetTimeStep(0.01f);
+	m_physicsScene->SetGravity({ 0.0f, -9.81f * 5.0f });
+	m_physicsScene->SetTimeStep(0.0333f);
 
-	ball1 = new Sphere({ -4, 0 }, { 0, 0 }, 4.0f, 4, { 1, 0, 0, 1 });
-	ball2 = new Sphere({ 4, 0 }, { 0, 0 }, 4.0f, 4, { 0, 1, 0, 1 });
+	ball1 = new Sphere({ -20, 0 }, { 30, 0 }, 4.0f, 4);
+	ball2 = new Sphere({ 20, 0 }, { -30, 0 }, 4.0f, 4, { 1, 0, 1, 1 });
+	plane = new Plane({ 0.1f, 0.9f }, -20.0f);
 
 	m_physicsScene->AddActor(ball1);
 	m_physicsScene->AddActor(ball2);
+	m_physicsScene->AddActor(plane);
 
 	return true;
 }
@@ -50,11 +56,6 @@ void Application2D::shutdown()
 void Application2D::update(float deltaTime) 
 {
 	aie::Input* input = aie::Input::getInstance();
-
-	if (input->isKeyDown(aie::INPUT_KEY_L))
-	{
-		ball1->ApplyForceToActor(ball2, { -2.0f, 0.0f });
-	}
 
 	aie::Gizmos::clear(); // Clear Gizmos.
 
@@ -70,7 +71,7 @@ void Application2D::update(float deltaTime)
 void Application2D::draw() 
 {
 	// wipe the screen to the background colour
-	//setBackgroundColour(1.0f, 1.0f, 1.0f);
+	setBackgroundColour(0.392f, 0.584f, 0.929f);
 	clearScreen();
 
 	// begin drawing sprites

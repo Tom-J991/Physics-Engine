@@ -2,24 +2,34 @@
 
 #include <glm/glm.hpp>
 
+#include "PhysicsScene.h"
+
 enum ShapeType
 {
 	PLANE = 0,
 	SPHERE,
-	BOX
+	//BOX,
+	SHAPE_COUNT
 };
 
 class PhysicsObject // Abstract class to specify objects within the physics scene.
 {
 public:
-	virtual void FixedUpdate(glm::vec2 gravity, float timeStep) = 0;
+	virtual void FixedUpdate(float timeStep) = 0;
 	virtual void Draw() = 0;
 	virtual void ResetPosition() { };
+
+	virtual float GetEnergy() { return 0.0f; };
+
+	ShapeType GetShapeID() const { return m_shapeID; }
+
+	void SetPhysicsScene(PhysicsScene *physicsScene) { m_physicsScene = physicsScene; }
 
 protected:
 	PhysicsObject(ShapeType a_shapeID) : m_shapeID(a_shapeID) { }
 
 protected:
+	PhysicsScene *m_physicsScene = nullptr; // Keep a pointer to the parent physics scene.
 	ShapeType m_shapeID;
 
 };

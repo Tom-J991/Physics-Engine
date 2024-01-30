@@ -10,10 +10,10 @@ RigidBody::RigidBody(ShapeType shapeID, glm::vec2 position, glm::vec2 velocity, 
 RigidBody::~RigidBody()
 { }
 
-void RigidBody::FixedUpdate(glm::vec2 gravity, float timeStep)
+void RigidBody::FixedUpdate(float timeStep)
 {
+	ApplyForce(m_physicsScene->GetGravity() * m_mass * timeStep); // Do gravity.
 	m_position += m_velocity * timeStep; // Apply velocity.
-	ApplyForce(gravity * m_mass * timeStep); // Do gravity.
 }
 
 void RigidBody::ApplyForce(glm::vec2 force)
@@ -24,5 +24,42 @@ void RigidBody::ApplyForce(glm::vec2 force)
 void RigidBody::ApplyForceToActor(RigidBody *actor2, glm::vec2 force)
 {
 	actor2->ApplyForce(force); // Apply force against other rigidbody and opposite force against self. Newton's third law.
-	ApplyForce(force * -1.f);
+	ApplyForce(-force);
+}
+
+#include <iostream>
+void RigidBody::ResolveCollision(RigidBody *actor2) // Calculates impulse magnitude and impulse force from the actor's velocity and the collision normal then applies the equal and opposite reactions to the actors.
+{
+	glm::vec2 normal = glm::normalize(actor2->GetPosition() - m_position);
+	glm::vec2 relVelocity = actor2->GetVelocity() - m_velocity;
+
+	float elasticity = 1.0f;
+	float impulseMag =	glm::dot(-(1 + elasticity) * (relVelocity), normal) / 
+						glm::dot(normal, normal *((1 / m_mass) + (1 / actor2->GetMass()))); // j = (-(1+e)Vrel)*n / n*(n*(1/Ma + 1/Mb))
+	glm::vec2 force = normal * impulseMag;
+
+	float initialKineticEnergy = GetKineticEnergy() + actor2->GetKineticEnergy(); // Diagnostics.
+
+	ApplyForceToActor(actor2, force);
+
+	float kineticEnergy = GetKineticEnergy() + actor2->GetKineticEnergy(); // Diagnostics.
+
+	float deltaKineticEnergy = kineticEnergy - initialKineticEnergy;
+	if (deltaKineticEnergy > kineticEnergy * 0.01f)
+		std::cout << "Kinetic Energy discrepancy greater than 1%";
+}
+
+float RigidBody::GetEnergy()
+{
+	return GetKineticEnergy() + GetPotentialEnergy();
+}
+
+float RigidBody::GetKineticEnergy()
+{
+	return 0.5f * (m_mass * glm::dot(m_velocity, m_velocity)); // E = 0.5(mv^2)
+}
+
+float RigidBody::GetPotentialEnergy()
+{
+	return -m_mass * glm::dot(m_physicsScene->GetGravity(), m_position); // E = -mgh
 }
