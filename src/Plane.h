@@ -16,15 +16,17 @@ public:
 	virtual void Draw() override;
 	virtual void ResetPosition() override;
 
-	void ResolveCollision(RigidBody *actor2);
+	void ResolveCollision(RigidBody *actor2, glm::vec2 contact);
 
-	glm::vec2 GetNormal() { return m_normal; }
-	float GetDistance() { return m_distanceToOrigin; }
+	glm::vec2 GetNormal() const { return m_normal; }
+	float GetDistance() const { return m_distanceToOrigin; }
+	glm::vec4 GetColour() const { return m_colour; }
+
+	void SetColour(const glm::vec4 colour) { m_colour = colour; }
 
 protected:
 	glm::vec2 m_normal;
 	float m_distanceToOrigin;
-
 	glm::vec4 m_colour;
 
 };

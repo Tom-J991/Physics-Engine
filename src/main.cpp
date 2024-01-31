@@ -8,7 +8,7 @@ int main()
 	Application2D *app = new Application2D();
 
 	// initialise and loop
-	app->run("AIE", SCREEN_WIDTH, SCREEN_HEIGHT, false);
+	app->run("Physics App", SCREEN_WIDTH, SCREEN_HEIGHT, false);
 
 	// deallocation
 	delete app;

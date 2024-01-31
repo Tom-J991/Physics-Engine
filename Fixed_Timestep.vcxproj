@@ -87,6 +87,7 @@
   <ItemGroup>
     <ClCompile Include="src\Application2D.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\OBB.cpp" />
     <ClCompile Include="src\PhysicsScene.cpp" />
     <ClCompile Include="src\Plane.cpp" />
     <ClCompile Include="src\RigidBody.cpp" />
@@ -100,6 +101,7 @@
   <ItemGroup>
     <ClInclude Include="src\Application2D.h" />
     <ClInclude Include="src\Common.h" />
+    <ClInclude Include="src\OBB.h" />
     <ClInclude Include="src\PhysicsObject.h" />
     <ClInclude Include="src\PhysicsScene.h" />
     <ClInclude Include="src\Plane.h" />

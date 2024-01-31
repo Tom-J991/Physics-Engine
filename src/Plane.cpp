@@ -46,13 +46,32 @@ void Plane::ResetPosition()
 	m_distanceToOrigin = 0.0f;
 }
 
-void Plane::ResolveCollision(RigidBody *actor2) // Calculates the impulse magnitude and impulse force against a RigidBody object and the static plane and applies it to the RigidBody.
+#include <iostream>
+void Plane::ResolveCollision(RigidBody *actor2, glm::vec2 contact) // Calculates the impulse magnitude and impulse force against a RigidBody object and the static plane and applies it to the RigidBody at the point of contact.
 {
-	glm::vec2 relVelocity = actor2->GetVelocity();
+	if (actor2->IsKinematic())
+		return;
+
+	glm::vec2 localContact = contact - actor2->GetPosition();
+
+	glm::vec2 relVelocity = actor2->GetVelocity() + actor2->GetAngularVelocity() * glm::vec2(-localContact.y, localContact.x);
+	float velocityIntoPlane = glm::dot(relVelocity, m_normal);
 
 	float elasticity = 1.0f;
-	float impulseMag =	glm::dot(-(1 + elasticity) * (relVelocity), m_normal) / (1 / actor2->GetMass());  // j = (-(1+e)Vrel)*n / (1/Ma)
+
+	float r = glm::dot(localContact, glm::vec2(m_normal.y, -m_normal.x));
+	float mass0 = 1.0f / (1.0f / actor2->GetMass() + (r * r) / actor2->GetMoment());
+
+	float impulseMag =	-(1 + elasticity) * velocityIntoPlane * mass0;  // j = (-(1+e)Vrel)*n / (1/Ma)
 	glm::vec2 force = m_normal * impulseMag;
 
-	actor2->ApplyForce(force);
+	float initialKineticEnergy = actor2->GetKineticEnergy(); // Diagnostics.
+
+	actor2->ApplyForce(force, contact - actor2->GetPosition());
+
+	float kineticEnergy = actor2->GetKineticEnergy(); // Diagnostics.
+
+	float deltaKineticEnergy = kineticEnergy - initialKineticEnergy;
+	if (deltaKineticEnergy > kineticEnergy * 0.01f)
+		std::cout << "Kinetic Energy discrepancy greater than 1%";
 }

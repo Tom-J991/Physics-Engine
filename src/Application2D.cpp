@@ -12,12 +12,14 @@
 #include "RigidBody.h"
 #include "Sphere.h"
 #include "Plane.h"
+#include "OBB.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
 Sphere *ball1;
 Sphere *ball2;
+OBB *box;
 Plane *plane;
 
 Application2D::Application2D() 
@@ -37,12 +39,16 @@ bool Application2D::startup()
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 5.0f });
 	m_physicsScene->SetTimeStep(0.0333f);
 
-	ball1 = new Sphere({ -20, 0 }, { 30, 0 }, 4.0f, 4);
-	ball2 = new Sphere({ 20, 0 }, { -30, 0 }, 4.0f, 4, { 1, 0, 1, 1 });
-	plane = new Plane({ 0.1f, 0.9f }, -20.0f);
+	ball1 = new Sphere({ -20, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 4);
+	ball2 = new Sphere({ 20, 0 }, { -30, 0 }, 4.0f, 0.0f, 0.0f, 4, { 1, 0, 1, 1 });
+	box = new OBB({ 0, 12 }, { 0.0f, 0.0f }, 4.0f, 0.0f, 0.0f, { 4, 12 });
+	plane = new Plane({ 0.3f, 0.7f }, -20.0f);
+
+	box->SetKinematic(false);
 
 	m_physicsScene->AddActor(ball1);
 	m_physicsScene->AddActor(ball2);
+	m_physicsScene->AddActor(box);
 	m_physicsScene->AddActor(plane);
 
 	return true;
