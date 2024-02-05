@@ -17,18 +17,30 @@ Spring::~Spring()
 
 void Spring::FixedUpdate(float timeStep)
 {
+	if (m_body1 == nullptr && m_body2 == nullptr)
+		return;
+
+	glm::vec2 relativeVelocity;
+
 	glm::vec2 p1 = GetFirstContact();
 	glm::vec2 p2 = GetSecondContact();
 
 	float length = glm::distance(p1, p2);
 	glm::vec2 direction = glm::normalize(p2 - p1);
 
-	glm::vec2 relativeVelocity = m_body2->GetVelocity() - m_body1->GetVelocity();
+	if (m_body1 == nullptr)
+		relativeVelocity = m_body2->GetVelocity();
+	else if (m_body2 == nullptr)
+		relativeVelocity = m_body1->GetVelocity();
+	else
+		relativeVelocity = m_body2->GetVelocity() - m_body1->GetVelocity();
 
 	glm::vec2 force = direction * m_springCoefficient * (m_restLength - length) - m_damping * relativeVelocity; // F = -kX - bv
 
-	m_body1->ApplyForce(-force * timeStep, p1 - m_body1->GetPosition());
-	m_body2->ApplyForce(force * timeStep, p2 - m_body2->GetPosition());
+	if (m_body1 != nullptr)
+		m_body1->ApplyForce(-force * timeStep, p1 - m_body1->GetPosition());
+	if (m_body2 != nullptr)
+		m_body2->ApplyForce(force * timeStep, p2 - m_body2->GetPosition());
 }
 
 void Spring::Draw()
