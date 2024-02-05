@@ -21,8 +21,8 @@ RigidBody::~RigidBody()
 
 void RigidBody::FixedUpdate(float timeStep)
 {
-	float cs = cosf(m_orientation);
-	float sn = sinf(m_orientation);
+	float cs = glm::cos(m_orientation);
+	float sn = glm::sin(m_orientation);
 	m_localX = glm::normalize(glm::vec2(cs, sn));
 	m_localY = glm::normalize(glm::vec2(-sn, cs));
 
@@ -35,11 +35,13 @@ void RigidBody::FixedUpdate(float timeStep)
 
 	m_position += m_velocity * timeStep; // Apply velocity to position.
 	ApplyForce(m_physicsScene->GetGravity() * GetMass() * timeStep, { 0.0f, 0.0f }); // Do gravity.
-
-	m_orientation += m_angularVelocity * timeStep; // Apply angular velocity to rotation.
-
 	m_velocity -= m_velocity * m_linearDrag * timeStep; // Apply linear drag to velocity.
-	m_angularVelocity -= m_angularVelocity * m_angularDrag * timeStep; // Apply angular drag to angular velocity.
+
+	if (m_lockRotation == false)
+	{
+		m_orientation += m_angularVelocity * timeStep; // Apply angular velocity to rotation.
+		m_angularVelocity -= m_angularVelocity * m_angularDrag * timeStep; // Apply angular drag to angular velocity.
+	}
 
 	if (glm::length(m_velocity) < MIN_LINEAR_THRESHOLD)
 	{
@@ -58,7 +60,7 @@ void RigidBody::ResetPosition()
 void RigidBody::ApplyForce(glm::vec2 force, glm::vec2 pos)
 {
 	m_velocity += (force / GetMass()); // force = mass * acceleration, acceleration = force / mass. Newton's second law.
-	m_angularVelocity += (force.y * pos.x - force.x * pos.y) / GetMoment(); // angular acceleration = torque / moment of inertia. torque = force applied * lever arm (t=||r||||f||sin(angle)).
+	if (m_lockRotation == false) m_angularVelocity += (force.y * pos.x - force.x * pos.y) / GetMoment(); // angular acceleration = torque / moment of inertia. torque = force applied * lever arm (t=||r||||f||sin(angle)).
 }
 
 #include <iostream>
@@ -108,7 +110,9 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 
 glm::vec2 RigidBody::ToWorld(glm::vec2 localPosition)
 {
-	return localPosition + m_localX * m_position.x + m_localY * m_position.y;
+	glm::vec2 worldX = glm::vec2(1, 0);
+	glm::vec2 worldY = glm::vec2(0, 1);
+	return localPosition + worldX * m_position.x + worldY * m_position.y;
 }
 
 float RigidBody::GetEnergy()

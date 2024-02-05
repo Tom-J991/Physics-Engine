@@ -38,6 +38,7 @@ public:
 	void SetPosition(const glm::vec2 position) { m_position = position; }
 	void SetVelocity(const glm::vec2 velocity) { m_velocity = velocity; }
 	void SetKinematic(const bool kinematic) { m_kinematic = kinematic; }
+	void SetRotationLock(const bool lock) { m_lockRotation = lock; }
 
 protected:
 	glm::vec2 m_position;
@@ -50,9 +51,10 @@ protected:
 	float m_angularDrag;
 	float m_moment; // Moment of inertia.
 
-	glm::vec2 m_localX; // Hold two rotation matrix axes for performance reasons.
-	glm::vec2 m_localY;
+	glm::vec2 m_localX = { 0, 0 }; // Hold two rotation matrix axes mostly for performance reasons.
+	glm::vec2 m_localY = { 0, 0 };
 
 	bool m_kinematic = false;
+	bool m_lockRotation = false;
 
 };

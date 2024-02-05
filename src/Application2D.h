@@ -5,6 +5,9 @@
 
 #include "PhysicsScene.h"
 
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+
 class Application2D : public aie::Application 
 {
 public:
@@ -16,6 +19,8 @@ public:
 
 	virtual void update(float deltaTime) override;
 	virtual void draw() override;
+
+	glm::vec2 ScreenToWorld(glm::vec2 screenPosition);
 
 protected:
 	aie::Renderer2D *m_2dRenderer = nullptr;

@@ -9,7 +9,7 @@
 #include "OBB.h"
 
 PhysicsScene::PhysicsScene()
-	: m_timeStep { 0.01f }
+	: m_timeStep { 1/30.f }
 { 
 	m_gravity = { 0, 0 };
 }
@@ -19,59 +19,6 @@ PhysicsScene::~PhysicsScene()
 	for (auto p_actor : m_actors)
 	{
 		delete p_actor;
-	}
-}
-
-void PhysicsScene::AddActor(PhysicsObject *actor)
-{
-	m_actors.push_back(actor);
-	actor->SetPhysicsScene(this);
-}
-
-void PhysicsScene::AddActors(std::initializer_list<PhysicsObject *> actorList)
-{
-	for (std::initializer_list<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
-	{
-		PhysicsObject *actor = *i;
-		AddActor(actor);
-	}
-}
-void PhysicsScene::AddActors(std::vector<PhysicsObject *> actorList)
-{
-	for (std::vector<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
-	{
-		PhysicsObject *actor = *i;
-		AddActor(actor);
-	}
-}
-
-void PhysicsScene::RemoveActor(PhysicsObject *actor)
-{
-	for (std::vector<PhysicsObject *>::iterator i = m_actors.begin(); i != m_actors.end(); ++i)
-	{
-		if (*i == actor)
-		{
-			actor->SetPhysicsScene(nullptr);
-			m_actors.erase(i);
-			break;
-		}
-	}
-}
-
-void PhysicsScene::RemoveActors(std::initializer_list<PhysicsObject *> actorList)
-{
-	for (std::initializer_list<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
-	{
-		PhysicsObject *actor = *i;
-		RemoveActor(actor);
-	}
-}
-void PhysicsScene::RemoveActors(std::vector<PhysicsObject *> actorList)
-{
-	for (std::vector<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
-	{
-		PhysicsObject *actor = *i;
-		RemoveActor(actor);
 	}
 }
 
@@ -96,12 +43,6 @@ void PhysicsScene::Update(float deltaTime)
 	{
 		frames++;
 		fpsInterval += m_timeStep;
-		if (fpsInterval >= 1.0f) // Get FPS.
-		{
-			m_fps = frames;
-			frames = 0;
-			fpsInterval -= 1.0f;
-		}
 
 		for (auto p_actor : m_actors)
 		{
@@ -133,9 +74,16 @@ void PhysicsScene::Update(float deltaTime)
 		}
 
 		float energy = GetTotalEnergy(); // Diagnostics.
-		std::cout << energy << std::endl;
+		std::cout << "Total Energy in Physics Scene: " << energy << std::endl;
 
 		accumulatedTime -= m_timeStep;
+	}
+
+	if (fpsInterval >= 1.0f) // Get FPS.
+	{
+		m_fps = frames;
+		frames = 0;
+		fpsInterval -= 1.0f;
 	}
 }
 
@@ -159,6 +107,15 @@ float PhysicsScene::GetTotalEnergy()
 }
 
 // Collision stuff.
+void PhysicsScene::ApplyContactForces(RigidBody *body1, RigidBody *body2, glm::vec2 normal, float penetration)
+{
+	float body2Mass = body2 ? body2->GetMass() : INT_MAX;
+	float body1Factor = body2Mass / (body1->GetMass() + body2Mass);
+	body1->SetPosition(body1->GetPosition() - body1Factor * normal * penetration);
+	if (body2)
+		body2->SetPosition(body2->GetPosition() + (1 - body1Factor) * normal * penetration);
+}
+
 bool PhysicsScene::Plane2Plane(PhysicsObject *obj1, PhysicsObject *obj2)
 {
 	return false; // Don't need collision handling for static objects.
@@ -320,11 +277,55 @@ bool PhysicsScene::Box2Box(PhysicsObject *obj1, PhysicsObject *obj2)
 	return false;
 }
 
-void PhysicsScene::ApplyContactForces(RigidBody *body1, RigidBody *body2, glm::vec2 normal, float penetration)
+void PhysicsScene::AddActor(PhysicsObject *actor)
 {
-	float body2Mass = body2 ? body2->GetMass() : INT_MAX;
-	float body1Factor = body2Mass / (body1->GetMass() + body2Mass);
-	body1->SetPosition(body1->GetPosition() - body1Factor * normal * penetration);
-	if (body2)
-		body2->SetPosition(body2->GetPosition() + (1 - body1Factor) * normal * penetration);
+	m_actors.push_back(actor);
+	actor->SetPhysicsScene(this);
+}
+
+void PhysicsScene::AddActors(std::initializer_list<PhysicsObject *> actorList)
+{
+	for (std::initializer_list<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		AddActor(actor);
+	}
+}
+void PhysicsScene::AddActors(std::vector<PhysicsObject *> actorList)
+{
+	for (std::vector<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		AddActor(actor);
+	}
+}
+
+void PhysicsScene::RemoveActor(PhysicsObject *actor)
+{
+	for (std::vector<PhysicsObject *>::iterator i = m_actors.begin(); i != m_actors.end(); ++i)
+	{
+		if (*i == actor)
+		{
+			actor->SetPhysicsScene(nullptr);
+			m_actors.erase(i);
+			break;
+		}
+	}
+}
+
+void PhysicsScene::RemoveActors(std::initializer_list<PhysicsObject *> actorList)
+{
+	for (std::initializer_list<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		RemoveActor(actor);
+	}
+}
+void PhysicsScene::RemoveActors(std::vector<PhysicsObject *> actorList)
+{
+	for (std::vector<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		RemoveActor(actor);
+	}
 }

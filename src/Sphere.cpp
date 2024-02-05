@@ -18,6 +18,6 @@ void Sphere::Draw()
 	glm::vec4 outlineColour = m_colour - 0.333f;
 	outlineColour.a = 1.0f;
 	aie::Gizmos::add2DCircle(m_position, m_radius, 24, outlineColour);
-	aie::Gizmos::add2DCircle(m_position, m_radius-1, 12, m_colour);
-	aie::Gizmos::add2DLine(m_position, m_position + end, { 1, 1, 1, 1 });
+	aie::Gizmos::add2DCircle(m_position, m_radius - 1, 12, m_colour);
+	//aie::Gizmos::add2DLine(m_position, m_position + end, { 1, 1, 1, 1 }); // Rotation line. (except rotation doesn't work)
 }

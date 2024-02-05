@@ -33,7 +33,7 @@ void Spring::FixedUpdate(float timeStep)
 
 void Spring::Draw()
 {
-	aie::Gizmos::add2DLine(GetFirstContact(), GetSecondContact(), { 0, 0, 1, 1 });
+	aie::Gizmos::add2DLine(GetFirstContact(), GetSecondContact(), { 1, 1, 0, 1 }); // Yellow.
 }
 
 void Spring::ResetPosition()

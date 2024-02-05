@@ -4,10 +4,11 @@
 
 #include "RigidBody.h"
 
-Plane::Plane(float elasticity, glm::vec2 normal, float distance, glm::vec4 colour)
+Plane::Plane(float elasticity, glm::vec2 normal, float distance, glm::vec4 colour, float length)
 	: PhysicsObject(ShapeType::PLANE)
 	, m_distanceToOrigin(distance)
 	, m_colour(colour)
+	, m_length(length)
 { 
 	m_elasticity = elasticity;
 	m_normal = glm::normalize(normal);
@@ -23,14 +24,14 @@ void Plane::FixedUpdate(float timeStep)
 void Plane::Draw()
 {
 	// Draws the (infinite) line as a quad.
-	float lineSegmentLength = 256; // Limit length since you can't draw infinitely.
-	float lineDepth = 2.0f; // The depth/height of the quad.
+	float lineDepth = 4.0f; // The depth/height of the quad.
+	float lineSegmentLength = m_length; // Limit length since you can't draw infinitely.
 
 	glm::vec2 centerPoint = m_normal * m_distanceToOrigin;
 	glm::vec2 parallel(m_normal.y, -m_normal.x);
 
 	glm::vec4 colourFade = m_colour; // Gradient
-	//colourFade.a = 0.0f;
+	colourFade.a = 0.0f;
 
 	glm::vec2 start = centerPoint + (parallel * lineSegmentLength); // Leftmost vertex of quad.
 	glm::vec2 end = centerPoint - (parallel * lineSegmentLength); // Rightmost vertex of quad.
