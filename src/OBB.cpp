@@ -2,8 +2,8 @@
 
 #include "Gizmos.h"
 
-OBB::OBB(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, glm::vec2 extents, glm::vec4 colour)
-	: RigidBody(ShapeType::BOX, position, velocity, mass, orientation, angularVelocity)
+OBB::OBB(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float linearDrag, float angularDrag, float elasticity, glm::vec2 extents, glm::vec4 colour)
+	: RigidBody(ShapeType::BOX, position, velocity, mass, orientation, angularVelocity, linearDrag, angularDrag, elasticity)
 	, m_extents(extents)
 	, m_colour(colour)
 { 
@@ -11,16 +11,6 @@ OBB::OBB(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, 
 }
 OBB::~OBB()
 { }
-
-void OBB::FixedUpdate(float timeStep)
-{
-	RigidBody::FixedUpdate(timeStep);
-
-	float cs = cosf(m_orientation);
-	float sn = sinf(m_orientation);
-	m_localX = glm::normalize(glm::vec2(cs, sn));
-	m_localY = glm::normalize(glm::vec2(-sn, cs));
-}
 
 void OBB::Draw()
 {

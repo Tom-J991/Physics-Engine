@@ -92,6 +92,7 @@
     <ClCompile Include="src\Plane.cpp" />
     <ClCompile Include="src\RigidBody.cpp" />
     <ClCompile Include="src\Sphere.cpp" />
+    <ClCompile Include="src\Spring.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="external\aieBootstrap\bootstrap\Bootstrap.vcxproj">
@@ -107,6 +108,7 @@
     <ClInclude Include="src\Plane.h" />
     <ClInclude Include="src\RigidBody.h" />
     <ClInclude Include="src\Sphere.h" />
+    <ClInclude Include="src\Spring.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

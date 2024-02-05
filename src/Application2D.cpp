@@ -13,14 +13,22 @@
 #include "Sphere.h"
 #include "Plane.h"
 #include "OBB.h"
+#include "Spring.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
-Sphere *ball1;
+const float extents = 100;
+const float aspectRatio = 16.f / 9.f;
+
+Sphere *ball1; // All these instances get deleted by the physics scene when the physics scene is deleted.
 Sphere *ball2;
 OBB *box;
-Plane *plane;
+Plane *planeLeft;
+Plane *planeRight;
+Plane *planeBottom;
+Plane *planeTop;
+Spring *spring;
 
 Application2D::Application2D() 
 { }
@@ -36,20 +44,22 @@ bool Application2D::startup()
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
 
 	m_physicsScene = new PhysicsScene();
-	m_physicsScene->SetGravity({ 0.0f, -9.81f * 5.0f });
-	m_physicsScene->SetTimeStep(0.0333f);
+	m_physicsScene->SetGravity({ 0.0f, -9.81f * 4.0f });
+	m_physicsScene->SetTimeStep(1/60.f);
 
-	ball1 = new Sphere({ -20, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 4);
-	ball2 = new Sphere({ 20, 0 }, { -30, 0 }, 4.0f, 0.0f, 0.0f, 4, { 1, 0, 1, 1 });
-	box = new OBB({ 0, 12 }, { 0.0f, 0.0f }, 4.0f, 0.0f, 0.0f, { 4, 12 });
-	plane = new Plane({ 0.3f, 0.7f }, -20.0f);
+	ball1 = new Sphere({ 0, 20 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 4);
+	ball2 = new Sphere({ 0, 0 }, { 40, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 4, { 1, 0, 1, 1 });
+	//box = new OBB({ 0, 12 }, { 40, 0 }, 6.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f, { 4, 12 });
+	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -50.0f * 1.7777f);
+	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -50.0f * 1.7777f);
+	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -50.0f);
+	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -50.0f);
 
-	box->SetKinematic(false);
+	spring = new Spring(ball1, ball2, 0, 6, 5);
 
-	m_physicsScene->AddActor(ball1);
-	m_physicsScene->AddActor(ball2);
-	m_physicsScene->AddActor(box);
-	m_physicsScene->AddActor(plane);
+	ball1->SetKinematic(true);
+
+	m_physicsScene->AddActors({ ball1, ball2, planeLeft, planeRight, planeBottom, planeTop, spring });
 
 	return true;
 }
@@ -83,15 +93,18 @@ void Application2D::draw()
 	// begin drawing sprites
 	m_2dRenderer->begin();
 
-	static float aspectRatio = 16.f / 9.f;
-	aie::Gizmos::draw2D(glm::ortho<float>(-100, 100, -100 / aspectRatio, 100 / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
+	aie::Gizmos::draw2D(glm::ortho<float>(-extents, extents, -extents / aspectRatio, extents / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
 
 	// output some text, uses the last used colour
 	char fps[32];
-	sprintf_s(fps, 32, "FPS: %i", getFPS());
-	m_2dRenderer->setRenderColour(0x00FF00FF);
+	sprintf_s(fps, 32, "Application FPS: %i", getFPS());
+	m_2dRenderer->setRenderColour(0xFFFFFFFF);
 	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, SCREEN_HEIGHT - 32);
-	m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, SCREEN_HEIGHT - 64);
+
+	sprintf_s(fps, 32, "Physics FPS: %i", m_physicsScene->GetFPS());
+	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, SCREEN_HEIGHT - 64);
+
+	m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, SCREEN_HEIGHT - 96);
 
 	// done drawing sprites
 	m_2dRenderer->end();

@@ -4,11 +4,12 @@
 
 #include "RigidBody.h"
 
-Plane::Plane(glm::vec2 normal, float distance, glm::vec4 colour)
+Plane::Plane(float elasticity, glm::vec2 normal, float distance, glm::vec4 colour)
 	: PhysicsObject(ShapeType::PLANE)
 	, m_distanceToOrigin(distance)
 	, m_colour(colour)
 { 
+	m_elasticity = elasticity;
 	m_normal = glm::normalize(normal);
 }
 Plane::~Plane()
@@ -23,13 +24,13 @@ void Plane::Draw()
 {
 	// Draws the (infinite) line as a quad.
 	float lineSegmentLength = 256; // Limit length since you can't draw infinitely.
-	float lineDepth = 12.0f; // The depth/height of the quad.
+	float lineDepth = 2.0f; // The depth/height of the quad.
 
 	glm::vec2 centerPoint = m_normal * m_distanceToOrigin;
 	glm::vec2 parallel(m_normal.y, -m_normal.x);
 
-	glm::vec4 colourFade = m_colour - 0.5f; // Gradient
-	colourFade.a = 0.0f;
+	glm::vec4 colourFade = m_colour; // Gradient
+	//colourFade.a = 0.0f;
 
 	glm::vec2 start = centerPoint + (parallel * lineSegmentLength); // Leftmost vertex of quad.
 	glm::vec2 end = centerPoint - (parallel * lineSegmentLength); // Rightmost vertex of quad.
@@ -57,17 +58,19 @@ void Plane::ResolveCollision(RigidBody *actor2, glm::vec2 contact) // Calculates
 	glm::vec2 relVelocity = actor2->GetVelocity() + actor2->GetAngularVelocity() * glm::vec2(-localContact.y, localContact.x);
 	float velocityIntoPlane = glm::dot(relVelocity, m_normal);
 
-	float elasticity = 1.0f;
-
 	float r = glm::dot(localContact, glm::vec2(m_normal.y, -m_normal.x));
 	float mass0 = 1.0f / (1.0f / actor2->GetMass() + (r * r) / actor2->GetMoment());
 
+	float elasticity = (m_elasticity + actor2->GetElasticity()) / 2.0f;
 	float impulseMag =	-(1 + elasticity) * velocityIntoPlane * mass0;  // j = (-(1+e)Vrel)*n / (1/Ma)
 	glm::vec2 force = m_normal * impulseMag;
 
 	float initialKineticEnergy = actor2->GetKineticEnergy(); // Diagnostics.
 
 	actor2->ApplyForce(force, contact - actor2->GetPosition());
+
+	float penetration = glm::dot(contact, m_normal) - m_distanceToOrigin;
+	PhysicsScene::ApplyContactForces(actor2, nullptr, m_normal, penetration);
 
 	float kineticEnergy = actor2->GetKineticEnergy(); // Diagnostics.
 

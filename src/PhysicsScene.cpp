@@ -15,7 +15,7 @@ PhysicsScene::PhysicsScene()
 }
 PhysicsScene::~PhysicsScene()
 { 
-	// Deallocate.
+	// Deallocate all actors.
 	for (auto p_actor : m_actors)
 	{
 		delete p_actor;
@@ -27,6 +27,24 @@ void PhysicsScene::AddActor(PhysicsObject *actor)
 	m_actors.push_back(actor);
 	actor->SetPhysicsScene(this);
 }
+
+void PhysicsScene::AddActors(std::initializer_list<PhysicsObject *> actorList)
+{
+	for (std::initializer_list<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		AddActor(actor);
+	}
+}
+void PhysicsScene::AddActors(std::vector<PhysicsObject *> actorList)
+{
+	for (std::vector<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		AddActor(actor);
+	}
+}
+
 void PhysicsScene::RemoveActor(PhysicsObject *actor)
 {
 	for (std::vector<PhysicsObject *>::iterator i = m_actors.begin(); i != m_actors.end(); ++i)
@@ -35,8 +53,25 @@ void PhysicsScene::RemoveActor(PhysicsObject *actor)
 		{
 			actor->SetPhysicsScene(nullptr);
 			m_actors.erase(i);
-			return;
+			break;
 		}
+	}
+}
+
+void PhysicsScene::RemoveActors(std::initializer_list<PhysicsObject *> actorList)
+{
+	for (std::initializer_list<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		RemoveActor(actor);
+	}
+}
+void PhysicsScene::RemoveActors(std::vector<PhysicsObject *> actorList)
+{
+	for (std::vector<PhysicsObject *>::iterator i = actorList.begin(); i != actorList.end(); ++i)
+	{
+		PhysicsObject *actor = *i;
+		RemoveActor(actor);
 	}
 }
 
@@ -48,6 +83,9 @@ static fn collisionFunctionArray[] = // Holds function pointers to collision res
 	PhysicsScene::Box2Plane, PhysicsScene::Box2Sphere, PhysicsScene::Box2Box,
 };
 
+unsigned int frames = 0;
+double fpsInterval = 0.0;
+
 #include <iostream>
 void PhysicsScene::Update(float deltaTime)
 {
@@ -56,11 +94,19 @@ void PhysicsScene::Update(float deltaTime)
 
 	while (accumulatedTime >= m_timeStep) // Fixed time step.
 	{
+		frames++;
+		fpsInterval += m_timeStep;
+		if (fpsInterval >= 1.0f) // Get FPS.
+		{
+			m_fps = frames;
+			frames = 0;
+			fpsInterval -= 1.0f;
+		}
+
 		for (auto p_actor : m_actors)
 		{
 			p_actor->FixedUpdate(m_timeStep);
 		}
-		accumulatedTime -= m_timeStep;
 
 		// Do collision check.
 		int actorCount = (int)m_actors.size();
@@ -74,6 +120,9 @@ void PhysicsScene::Update(float deltaTime)
 				int shapeID1 = object1->GetShapeID();
 				int shapeID2 = object2->GetShapeID();
 
+				if (shapeID1 < 0 || shapeID2 < 0)
+					continue;
+
 				int functionIndex = (shapeID1 * ShapeType::SHAPE_COUNT) + shapeID2;
 				fn collisionFunction = collisionFunctionArray[functionIndex]; // Get function pointer for proper collision handling.
 				if (collisionFunction != nullptr)
@@ -85,6 +134,8 @@ void PhysicsScene::Update(float deltaTime)
 
 		float energy = GetTotalEnergy(); // Diagnostics.
 		std::cout << energy << std::endl;
+
+		accumulatedTime -= m_timeStep;
 	}
 }
 
@@ -153,9 +204,10 @@ bool PhysicsScene::Sphere2Sphere(PhysicsObject *obj1, PhysicsObject *obj2)
 	if (sphere1 != nullptr && sphere2 != nullptr)
 	{
 		float distanceToCheck = glm::distance(sphere1->GetPosition(), sphere2->GetPosition());
-		if (distanceToCheck < (sphere1->GetRadius() + sphere2->GetRadius())) // Compares distance between each sphere to the sum of their radius'
+		float penetration = sphere1->GetRadius() + sphere2->GetRadius() - distanceToCheck;
+		if (penetration > 0) // Compares distance between each sphere to the sum of their radius'
 		{
-			sphere1->ResolveCollision(sphere2, 0.5f * (sphere1->GetPosition() + sphere2->GetPosition()));
+			sphere1->ResolveCollision(sphere2, 0.5f * (sphere1->GetPosition() + sphere2->GetPosition()), nullptr, penetration);
 			return true;
 		}
 	}
@@ -228,11 +280,12 @@ bool PhysicsScene::Box2Sphere(PhysicsObject *obj1, PhysicsObject *obj2)
 		if (closestPointOnBoxBox.y > extents.y) closestPointOnBoxBox.y = extents.y;
 		glm::vec2 closestPointOnBoxWorld = box->GetPosition() + closestPointOnBoxBox.x * box->GetLocalX() + closestPointOnBoxBox.y * box->GetLocalY();
 		glm::vec2 circleToBox = sphere->GetPosition() - closestPointOnBoxWorld;
-		if (glm::length(circleToBox) < sphere->GetRadius())
+		float penetration = sphere->GetRadius() - glm::length(circleToBox);
+		if (penetration > 0)
 		{
 			glm::vec2 direction = glm::normalize(circleToBox);
 			glm::vec2 contact = closestPointOnBoxWorld;
-			box->ResolveCollision(sphere, contact, &direction);
+			box->ResolveCollision(sphere, contact, &direction, penetration);
 			return true;
 		}
 	}
@@ -250,19 +303,28 @@ bool PhysicsScene::Box2Box(PhysicsObject *obj1, PhysicsObject *obj2)
 		glm::vec2 boxPos = box2->GetPosition() - box1->GetPosition();
 		glm::vec2 norm = { 0.0f, 0.0f };
 		glm::vec2 contact = { 0.0f, 0.0f };
-		float pen = 0;
+		float penetration = 0;
 		int numContacts = 0;
-		box1->CheckBoxCorners(*box2, contact, numContacts, pen, norm);
-		if (box2->CheckBoxCorners(*box1, contact, numContacts, pen, norm))
+		box1->CheckBoxCorners(*box2, contact, numContacts, penetration, norm);
+		if (box2->CheckBoxCorners(*box1, contact, numContacts, penetration, norm))
 		{
 			norm = -norm;
 		}
-		if (pen > 0)
+		if (penetration > 0)
 		{
-			box1->ResolveCollision(box2, contact / float(numContacts), &norm);
+			box1->ResolveCollision(box2, contact / float(numContacts), &norm, penetration);
 		}
 		return true;
 	}
 
 	return false;
+}
+
+void PhysicsScene::ApplyContactForces(RigidBody *body1, RigidBody *body2, glm::vec2 normal, float penetration)
+{
+	float body2Mass = body2 ? body2->GetMass() : INT_MAX;
+	float body1Factor = body2Mass / (body1->GetMass() + body2Mass);
+	body1->SetPosition(body1->GetPosition() - body1Factor * normal * penetration);
+	if (body2)
+		body2->SetPosition(body2->GetPosition() + (1 - body1Factor) * normal * penetration);
 }

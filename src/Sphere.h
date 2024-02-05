@@ -7,7 +7,7 @@
 class Sphere : public RigidBody // Sphere RigidBody object, simply derives from the RigidBody class and draws a sphere in position.
 {
 public:
-	Sphere(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float radius, glm::vec4 colour = { 1, 0, 0, 1 });
+	Sphere(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float linearDrag, float angularDrag, float elasticity, float radius, glm::vec4 colour = { 1, 0, 0, 1 });
 	virtual ~Sphere();
 
 	virtual void Draw() override;

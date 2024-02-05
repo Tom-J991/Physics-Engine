@@ -2,8 +2,8 @@
 
 #include "Gizmos.h"
 
-Sphere::Sphere(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float radius, glm::vec4 colour)
-	: RigidBody(ShapeType::SPHERE, position, velocity, mass, orientation, angularVelocity)
+Sphere::Sphere(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float linearDrag, float angularDrag, float elasticity, float radius, glm::vec4 colour)
+	: RigidBody(ShapeType::SPHERE, position, velocity, mass, orientation, angularVelocity, linearDrag, angularDrag, elasticity)
 	, m_radius(radius)
 	, m_colour(colour)
 { 

@@ -1,24 +1,54 @@
 ﻿#include "RigidBody.h"
 
-RigidBody::RigidBody(ShapeType shapeID, glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity)
+#define MIN_LINEAR_THRESHOLD 0.1f
+#define MIN_ANGULAR_THRESHOLD 0.01f
+
+RigidBody::RigidBody(ShapeType shapeID, glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float linearDrag, float angularDrag, float elasticity)
 	: PhysicsObject(shapeID)
 	, m_position(position)
 	, m_velocity(velocity)
 	, m_mass(mass)
 	, m_orientation(orientation)
 	, m_angularVelocity(angularVelocity)
-	, m_moment(1.0f)
-{ }
+	, m_linearDrag(linearDrag)
+	, m_angularDrag(angularDrag)
+{ 
+	m_moment = 1.0f;
+	m_elasticity = elasticity;
+}
 RigidBody::~RigidBody()
 { }
 
 void RigidBody::FixedUpdate(float timeStep)
 {
+	float cs = cosf(m_orientation);
+	float sn = sinf(m_orientation);
+	m_localX = glm::normalize(glm::vec2(cs, sn));
+	m_localY = glm::normalize(glm::vec2(-sn, cs));
+
+	if (m_kinematic == true)
+	{
+		m_velocity = { 0.0f, 0.0f };
+		m_angularVelocity = 0.0f;
+		return;
+	}
+
 	m_position += m_velocity * timeStep; // Apply velocity to position.
-	if (m_kinematic == false)
-		ApplyForce(m_physicsScene->GetGravity() * m_mass * timeStep, { 0.0f, 0.0f }); // Do gravity.
+	ApplyForce(m_physicsScene->GetGravity() * GetMass() * timeStep, { 0.0f, 0.0f }); // Do gravity.
 
 	m_orientation += m_angularVelocity * timeStep; // Apply angular velocity to rotation.
+
+	m_velocity -= m_velocity * m_linearDrag * timeStep; // Apply linear drag to velocity.
+	m_angularVelocity -= m_angularVelocity * m_angularDrag * timeStep; // Apply angular drag to angular velocity.
+
+	if (glm::length(m_velocity) < MIN_LINEAR_THRESHOLD)
+	{
+		m_velocity = { 0.0f, 0.0f }; // Stop rigidbody from moving after enough drag.
+	}
+	if (abs(m_angularVelocity) < MIN_ANGULAR_THRESHOLD)
+	{
+		m_angularVelocity = 0.0f; // Stop rigidbody from rotating after enough angular drag.
+	}
 }
 
 void RigidBody::ResetPosition()
@@ -32,7 +62,7 @@ void RigidBody::ApplyForce(glm::vec2 force, glm::vec2 pos)
 }
 
 #include <iostream>
-void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2 *collisionNormal) 
+void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2 *collisionNormal, float penetration)
 // Calculates effective mass from the collision normal, and the velocity/angular velocity of each actor at the contact point then applies the corrective force (equal and opposite) to the actors if the contact points are moving closer.
 {
 	glm::vec2 normal = glm::normalize(collisionNormal ? *collisionNormal : actor2->GetPosition() - m_position);
@@ -48,10 +78,10 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 	float v2 = glm::dot(actor2->GetVelocity(), normal) + r2 * actor2->GetAngularVelocity(); // Velocity of the contact point on actor2.
 	if (v1 > v2) // Are they getting closer to each other?
 	{
-		float mass1 = 1.0f / (1.0f / m_mass + (r1 * r1) / m_moment); // Calculate effective mass at the point of contact for both objects.
+		float mass1 = 1.0f / (1.0f / GetMass() + (r1 * r1) / GetMoment()); // Calculate effective mass at the point of contact for both objects.
 		float mass2 = 1.0f / (1.0f / actor2->GetMass() + (r2 * r2) / actor2->GetMoment()); // effective mass = 1 / (1 / mass) + (radius^2 / moment of inertia)
 
-		float elasticity = 1.0f;
+		float elasticity = (m_elasticity + actor2->GetElasticity()) / 2.0f;
 		float impulseMag =	glm::dot(-(1 + elasticity) * (relVelocity), normal) /
 							glm::dot(normal, normal * ((1 / mass1) + (1 / mass2))); // j = (-(1+e)Vrel)*n / n*(n*(1/Ma + 1/Mb))
 		glm::vec2 force = normal * impulseMag;
@@ -69,6 +99,16 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 		if (deltaKineticEnergy > kineticEnergy * 0.01f)
 			std::cout << "Kinetic Energy discrepancy greater than 1%";
 	}
+
+	if (penetration > 0)
+	{
+		PhysicsScene::ApplyContactForces(this, actor2, normal, penetration);
+	}
+}
+
+glm::vec2 RigidBody::ToWorld(glm::vec2 localPosition)
+{
+	return localPosition + m_localX * m_position.x + m_localY * m_position.y;
 }
 
 float RigidBody::GetEnergy()
@@ -78,10 +118,10 @@ float RigidBody::GetEnergy()
 
 float RigidBody::GetKineticEnergy()
 {
-	return 0.5f * (m_mass * glm::dot(m_velocity, m_velocity) + m_moment * (m_angularVelocity * m_angularVelocity)); // E = 0.5(mv^2), E = 0.5(IӨ^2)
+	return 0.5f * (GetMass() * glm::dot(m_velocity, m_velocity) + GetMoment() * (m_angularVelocity * m_angularVelocity)); // E = 0.5(mv^2), E = 0.5(IӨ^2)
 }
 
 float RigidBody::GetPotentialEnergy()
 {
-	return -m_mass * glm::dot(m_physicsScene->GetGravity(), m_position); // E = -mgh
+	return -GetMass() * glm::dot(m_physicsScene->GetGravity(), m_position); // E = -mgh
 }
