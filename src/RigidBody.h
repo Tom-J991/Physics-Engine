@@ -51,8 +51,8 @@ protected:
 	float m_angularDrag;
 	float m_moment; // Moment of inertia.
 
-	glm::vec2 m_localX = { 0, 0 }; // Hold two rotation matrix axes mostly for performance reasons.
-	glm::vec2 m_localY = { 0, 0 };
+	glm::vec2 m_localX = { 1, 0 }; // Hold two rotation matrix axes mostly for performance reasons.
+	glm::vec2 m_localY = { 0, 1 };
 
 	bool m_kinematic = false;
 	bool m_lockRotation = false;

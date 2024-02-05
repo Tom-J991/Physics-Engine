@@ -73,24 +73,24 @@ bool Application2D::startup()
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
 	m_physicsScene->SetTimeStep(physicsTimeStep);
 
-	ball1 = new Sphere({ 20, -40 }, { -300, 250 }, 50.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 8);
-	ball2 = new Sphere({ 0, 0 }, { 500, -500 }, 8.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 4, { 1, 0, 1, 1 });
+	ball1 = new Sphere({ 20, -40 }, { -100, 100 }, 50.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 8);
+	ball2 = new Sphere({ 0, 0 }, { 100, -100 }, 8.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 4, { 1, 0, 1, 1 });
 	box = new OBB({ 40, 20 }, { 40, 0 }, 6.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f, { 4, 12 });
 	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -50.0f * aspectRatio, { 0, 1, 1, 1 }, (extents - 50.0f));
 	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -50.0f * aspectRatio, { 0, 1, 1, 1 }, (extents - 50.0f));
 	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -50.0f, { 0, 1, 1, 1 }, (extents - 50.0f) * aspectRatio);
 	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -50.0f, { 0, 1, 1, 1 }, (extents - 50.0f) * aspectRatio);
 
-	spring = new Spring(nullptr, ball2, 4, 0, 256, { 0, 20 });
+	spring = new Spring(nullptr, ball2, 8, 0, 256, { 0, 20 });
 
-	m_physicsScene->AddActors({ box, ball1, ball2, planeLeft, planeRight, planeBottom, planeTop, spring });
+	m_physicsScene->AddActors({ box, ball1, ball2, spring, planeLeft, planeRight, planeBottom, planeTop });
 
-	for (int i = 0; i < 128*2; ++i)
+	for (int i = 0; i < 256; ++i)
 	{
 		Sphere *newSphere = new Sphere(
 			{ 80 - rand() % 160, 45 - rand() % 90 }, 
 			{ 50 - rand() % 100, 30 - rand() % 60 }, 
-			1, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 
+			1, 0.0f, 0.3f, 0.3f, 0.3f, 0.3f, 
 			1 + rand() % 3, 
 			HSV2RGB((rand() % 255) / 255.0f, 1.0f, 1.0f));
 		m_physicsScene->AddActor(newSphere);
