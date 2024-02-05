@@ -18,6 +18,8 @@
 const float extents = 100;
 const float aspectRatio = 16.f / 9.f;
 
+const float physicsTimeStep = 1 / 60.0f;
+
 Sphere *ball1; // All these instances get deleted by the physics scene when the physics scene is deleted.
 Sphere *ball2;
 OBB *box;
@@ -69,17 +71,17 @@ bool Application2D::startup()
 
 	m_physicsScene = new PhysicsScene();
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
-	m_physicsScene->SetTimeStep(1/60.f);
+	m_physicsScene->SetTimeStep(physicsTimeStep);
 
 	ball1 = new Sphere({ 20, -40 }, { -300, 250 }, 50.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 8);
 	ball2 = new Sphere({ 0, 0 }, { 500, -500 }, 8.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 4, { 1, 0, 1, 1 });
 	box = new OBB({ 40, 20 }, { 40, 0 }, 6.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f, { 4, 12 });
-	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -50.0f * 1.7777f, { 0, 1, 1, 1 }, (extents - 50.0f));
-	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -50.0f * 1.7777f, { 0, 1, 1, 1 }, (extents - 50.0f));
+	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -50.0f * aspectRatio, { 0, 1, 1, 1 }, (extents - 50.0f));
+	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -50.0f * aspectRatio, { 0, 1, 1, 1 }, (extents - 50.0f));
 	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -50.0f, { 0, 1, 1, 1 }, (extents - 50.0f) * aspectRatio);
 	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -50.0f, { 0, 1, 1, 1 }, (extents - 50.0f) * aspectRatio);
 
-	spring = new Spring(nullptr, ball2, 4, 0, 512, { 0, 20 });
+	spring = new Spring(nullptr, ball2, 4, 0, 256, { 0, 20 });
 
 	m_physicsScene->AddActors({ box, ball1, ball2, planeLeft, planeRight, planeBottom, planeTop, spring });
 
@@ -117,6 +119,8 @@ void Application2D::update(float deltaTime)
 
 	static bool dragging = false;
 	static glm::vec2 objectOffset = { 0, 0 };
+	static glm::vec2 previousPos = objectOffset;
+	static glm::vec2 objectDragVelocity = { 0, 0 };
 	float mouseDistanceToBall = glm::distance(mouseInWorld, ball2->GetPosition());
 
 	if (mouseDistanceToBall < ball2->GetRadius())
@@ -137,15 +141,19 @@ void Application2D::update(float deltaTime)
 		ball2->SetColour({ 1, 1, 1, 1 });
 
 		glm::vec2 newPos = mouseInWorld + objectOffset;
+		objectDragVelocity = newPos - previousPos;
+		previousPos = newPos;
+
 		ball2->SetKinematic(true);
 		ball2->SetPosition(newPos);
 
 		//std::cout << "Object Offset: { " << objectOffset.x << ", " << objectOffset.y << " }" << std::endl;
 		//std::cout << "New Position:  { " << newPos.x << ", " << newPos.y << " }" << std::endl;
 	}
-	if (input->isMouseButtonUp(0))
+	if (input->isMouseButtonUp(0) && dragging == true)
 	{
 		ball2->SetKinematic(false);
+		ball2->SetVelocity(objectDragVelocity / physicsTimeStep);
 		dragging = false;
 	}
 
