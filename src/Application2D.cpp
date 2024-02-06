@@ -91,7 +91,7 @@ bool Application2D::startup()
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
 	m_physicsScene->SetTimeStep(physicsTimeStep);
 
-	ball1 = new Ball({ -extents/2, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
+	ball1 = new Ball({ 0, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
 	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -80.0f, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)) / aspectRatio, 10.0f);
 	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -80.0f, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)) / aspectRatio, 10.0f);
 	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -80.0f / aspectRatio, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)), 10.0f);
