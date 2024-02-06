@@ -2,6 +2,8 @@
 
 #include "PhysicsObject.h"
 
+#include <functional>
+
 class RigidBody : public PhysicsObject // RigidBody physics object, implements classical mechanics (Newton's laws).
 {
 public:
@@ -11,6 +13,8 @@ public:
 	virtual void FixedUpdate(float timeStep) override;
 	virtual void ResetPosition() override;
 	
+	void TriggerEnter(PhysicsObject *actor2);
+
 	void ApplyForce(glm::vec2 force, glm::vec2 pos);
 
 	void ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2 *collisionNormal = nullptr, float penetration = 0);
@@ -34,13 +38,24 @@ public:
 	glm::vec2 GetLocalY() const { return m_localY; }
 
 	bool IsKinematic() const { return m_kinematic; }
+	bool IsTrigger() const { return m_isTrigger; }
 
 	void SetPosition(const glm::vec2 position) { m_position = position; }
 	void SetVelocity(const glm::vec2 velocity) { m_velocity = velocity; }
 	void SetKinematic(const bool kinematic) { m_kinematic = kinematic; }
 	void SetRotationLock(const bool lock) { m_lockRotation = lock; }
+	void SetIsTrigger(const bool trigger) { m_isTrigger = trigger; }
+
+public:
+	std::function<void(PhysicsObject *)> collisionCallback;
+
+	std::function<void(PhysicsObject *)> triggerEnter;
+	std::function<void(PhysicsObject *)> triggerExit;
 
 protected:
+	std::list<PhysicsObject *> m_objectsInside;
+	std::list<PhysicsObject *> m_objectsInsideThisFrame;
+
 	glm::vec2 m_position;
 	glm::vec2 m_velocity;
 
@@ -56,5 +71,6 @@ protected:
 
 	bool m_kinematic = false;
 	bool m_lockRotation = false;
+	bool m_isTrigger = false;
 
 };

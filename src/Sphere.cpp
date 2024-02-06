@@ -21,3 +21,8 @@ void Sphere::Draw()
 	aie::Gizmos::add2DCircle(m_position, m_radius - 1, 12, m_colour);
 	//aie::Gizmos::add2DLine(m_position, m_position + end, { 1, 1, 1, 1 }); // Rotation line. (except rotation doesn't work)
 }
+
+bool Sphere::IsInside(glm::vec2 point)
+{
+	return glm::distance(point, m_position) <= m_radius;
+}

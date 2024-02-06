@@ -26,6 +26,22 @@ void RigidBody::FixedUpdate(float timeStep)
 	m_localX = glm::normalize(glm::vec2(cs, sn));
 	m_localY = glm::normalize(glm::vec2(-sn, cs));
 
+	if (m_isTrigger)
+	{
+		for (auto it = m_objectsInside.begin(); it != m_objectsInsideThisFrame.end(); ++it)
+		{
+			if (std::find(m_objectsInsideThisFrame.begin(), m_objectsInsideThisFrame.end(), *it) == m_objectsInsideThisFrame.end())
+			{
+				if (triggerExit)
+					triggerExit(*it);
+				it = m_objectsInsideThisFrame.erase(it);
+				if (it == m_objectsInsideThisFrame.end())
+					break;
+			}
+		}
+	}
+	m_objectsInsideThisFrame.clear();
+
 	if (m_kinematic == true)
 	{
 		m_velocity = { 0.0f, 0.0f };
@@ -57,6 +73,16 @@ void RigidBody::ResetPosition()
 {
 }
 
+void RigidBody::TriggerEnter(PhysicsObject *actor2)
+{
+	if (m_isTrigger && std::find(m_objectsInside.begin(), m_objectsInside.end(), actor2) == m_objectsInside.end())
+	{
+		m_objectsInside.push_back(actor2);
+		if (triggerEnter != nullptr)
+			triggerEnter(actor2);
+	}
+}
+
 void RigidBody::ApplyForce(glm::vec2 force, glm::vec2 pos)
 {
 	m_velocity += (force / GetMass()); // force = mass * acceleration, acceleration = force / mass. Newton's second law.
@@ -67,6 +93,9 @@ void RigidBody::ApplyForce(glm::vec2 force, glm::vec2 pos)
 void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2 *collisionNormal, float penetration)
 // Calculates effective mass from the collision normal, and the velocity/angular velocity of each actor at the contact point then applies the corrective force (equal and opposite) to the actors if the contact points are moving closer.
 {
+	m_objectsInsideThisFrame.push_back(actor2);
+	actor2->m_objectsInsideThisFrame.push_back(this);
+
 	glm::vec2 normal = glm::normalize(collisionNormal ? *collisionNormal : actor2->GetPosition() - m_position);
 	glm::vec2 relVelocity = actor2->GetVelocity() - m_velocity;
 
@@ -91,9 +120,23 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 		float initialKineticEnergy = GetKineticEnergy() + actor2->GetKineticEnergy(); // Diagnostics.
 
 		// Equal and opposite reactions.
-		if (m_kinematic == false)
-			ApplyForce(-force, contact - m_position);
-		actor2->ApplyForce(force, contact - actor2->GetPosition());
+		if (!m_isTrigger && !actor2->m_isTrigger)
+		{
+			if (m_kinematic == false)
+				ApplyForce(-force, contact - m_position);
+			if (actor2->IsKinematic() == false)
+				actor2->ApplyForce(force, contact - actor2->GetPosition());
+
+			if (collisionCallback != nullptr)
+				collisionCallback(actor2);
+			if (actor2->collisionCallback != nullptr)
+				actor2->collisionCallback(this);
+		}
+		else
+		{
+			TriggerEnter(actor2);
+			actor2->TriggerEnter(this);
+		}
 
 		float kineticEnergy = GetKineticEnergy() + actor2->GetKineticEnergy(); // Diagnostics.
 

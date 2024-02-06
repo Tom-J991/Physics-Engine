@@ -109,6 +109,9 @@ float PhysicsScene::GetTotalEnergy()
 // Collision stuff.
 void PhysicsScene::ApplyContactForces(RigidBody *body1, RigidBody *body2, glm::vec2 normal, float penetration)
 {
+	if ((body1 && body1->IsTrigger()) || (body2 && body2->IsTrigger()))
+		return;
+
 	float body2Mass = body2 ? body2->GetMass() : INT_MAX;
 	float body1Factor = body2Mass / (body1->GetMass() + body2Mass);
 	body1->SetPosition(body1->GetPosition() - body1Factor * normal * penetration);

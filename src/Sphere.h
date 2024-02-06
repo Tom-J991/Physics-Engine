@@ -17,6 +17,8 @@ public:
 
 	void SetColour(const glm::vec4 colour) { m_colour = colour; }
 
+	bool IsInside(glm::vec2 point);
+
 protected:
 	float m_radius;
 	glm::vec4 m_colour;

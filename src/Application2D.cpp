@@ -70,22 +70,22 @@ bool Application2D::startup()
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
 
 	m_physicsScene = new PhysicsScene();
-	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
+	m_physicsScene->SetGravity({ 0.0f, -9.81f * 8.0f });
 	m_physicsScene->SetTimeStep(physicsTimeStep);
 
-	ball1 = new Sphere({ 20, -40 }, { -100, 100 }, 50.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 8);
-	ball2 = new Sphere({ 0, 0 }, { 100, -100 }, 8.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 4, { 1, 0, 1, 1 });
+	ball1 = new Sphere({ 20, -40 }, { -100, 100 }, 40.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 8);
+	ball2 = new Sphere({ 0, 0 }, { 100, -100 }, 12.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 6, { 1, 0, 1, 1 });
 	box = new OBB({ 40, 20 }, { 40, 0 }, 6.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f, { 4, 12 });
 	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -50.0f * aspectRatio, { 0, 1, 1, 1 }, (extents - 50.0f));
 	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -50.0f * aspectRatio, { 0, 1, 1, 1 }, (extents - 50.0f));
 	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -50.0f, { 0, 1, 1, 1 }, (extents - 50.0f) * aspectRatio);
 	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -50.0f, { 0, 1, 1, 1 }, (extents - 50.0f) * aspectRatio);
 
-	spring = new Spring(nullptr, ball2, 8, 0, 256, { 0, 20 });
+	spring = new Spring(nullptr, ball1, 8, 0, 1024, { 0, 20 });
 
 	m_physicsScene->AddActors({ box, ball1, ball2, spring, planeLeft, planeRight, planeBottom, planeTop });
 
-	for (int i = 0; i < 256; ++i)
+	for (int i = 0; i < 128*1; ++i)
 	{
 		Sphere *newSphere = new Sphere(
 			{ 80 - rand() % 160, 45 - rand() % 90 }, 
@@ -115,46 +115,82 @@ void Application2D::update(float deltaTime)
 
 	// Messy mouse dragging logic.
 	glm::vec2 mouseInWorld = ScreenToWorld({ mouseX, mouseY });
-	glm::vec2 mouseVelocityInWorld = ScreenToWorld({ mouseDeltaX, mouseDeltaY });
 
-	static bool dragging = false;
-	static glm::vec2 objectOffset = { 0, 0 };
-	static glm::vec2 previousPos = objectOffset;
+	static bool ball1Dragging = false;
+	static bool ball2Dragging = false;
+	static glm::vec2 ball1Offset = { 0, 0 };
+	static glm::vec2 ball2Offset = { 0, 0 };
+	static glm::vec2 previousBall1Pos = ball1Offset;
+	static glm::vec2 previousBall2Pos = ball2Offset;
 	static glm::vec2 objectDragVelocity = { 0, 0 };
-	float mouseDistanceToBall = glm::distance(mouseInWorld, ball2->GetPosition());
 
-	if (mouseDistanceToBall < ball2->GetRadius())
+	if (ball2->IsInside(mouseInWorld) && ball1Dragging == false)
 	{
 		ball2->SetColour({ 1, 1, 0, 1 });
-		if (dragging == false && input->isMouseButtonDown(0))
+		if (ball2Dragging == false && input->isMouseButtonDown(0))
 		{
-			objectOffset = ball2->GetPosition() - mouseInWorld;
-			dragging = true;
+			ball2Offset = ball2->GetPosition() - mouseInWorld;
+			ball2Dragging = true;
 		}
 	}
 	else
 	{
 		ball2->SetColour({ 1, 0, 1, 1 });
 	}
-	if (input->isMouseButtonDown(0) && dragging == true)
+	if (input->isMouseButtonDown(0) && ball2Dragging == true)
 	{
 		ball2->SetColour({ 1, 1, 1, 1 });
 
-		glm::vec2 newPos = mouseInWorld + objectOffset;
-		objectDragVelocity = newPos - previousPos;
-		previousPos = newPos;
+		glm::vec2 newPos = mouseInWorld + ball2Offset;
+		objectDragVelocity = newPos - previousBall2Pos;
+		previousBall2Pos = newPos;
 
 		ball2->SetKinematic(true);
 		ball2->SetPosition(newPos);
-
-		//std::cout << "Object Offset: { " << objectOffset.x << ", " << objectOffset.y << " }" << std::endl;
-		//std::cout << "New Position:  { " << newPos.x << ", " << newPos.y << " }" << std::endl;
 	}
-	if (input->isMouseButtonUp(0) && dragging == true)
+	if (input->isMouseButtonUp(0) && ball2Dragging == true)
 	{
+		glm::vec2 deltaVel = objectDragVelocity - ball2->GetVelocity();
+		glm::vec2 accel = deltaVel / physicsTimeStep;
 		ball2->SetKinematic(false);
-		ball2->SetVelocity(objectDragVelocity / physicsTimeStep);
-		dragging = false;
+		ball2->ApplyForce(ball2->GetMass() * accel, { 0, 0 });
+		objectDragVelocity = { 0, 0 };
+		ball2Dragging = false;
+	}
+
+	//
+	if (ball1->IsInside(mouseInWorld) && ball2Dragging == false)
+	{
+		ball1->SetColour({ 1, 1, 0, 1 });
+		if (ball1Dragging == false && input->isMouseButtonDown(0))
+		{
+			ball1Offset = ball1->GetPosition() - mouseInWorld;
+			ball1Dragging = true;
+		}
+	}
+	else
+	{
+		ball1->SetColour({ 1, 0, 0, 1 });
+	}
+	if (input->isMouseButtonDown(0) && ball1Dragging == true)
+	{
+		ball1->SetColour({ 1, 1, 1, 1 });
+
+		glm::vec2 newPos = mouseInWorld + ball1Offset;
+		objectDragVelocity = newPos - previousBall1Pos;
+		previousBall1Pos = newPos;
+
+		ball1->SetKinematic(true);
+		ball1->SetPosition(newPos);
+	}
+	if (input->isMouseButtonUp(0) && ball1Dragging == true)
+	{
+		glm::vec2 deltaVel = objectDragVelocity - ball1->GetVelocity();
+		glm::vec2 accel = deltaVel / physicsTimeStep;
+		ball1->SetKinematic(false);
+		ball1->ApplyForce(ball1->GetMass() * accel, { 0, 0 });
+		objectDragVelocity = { 0, 0 };
+		ball1Dragging = false;
 	}
 
 	aie::Gizmos::clear(); // Clear Gizmos.
