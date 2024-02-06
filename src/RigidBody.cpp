@@ -63,7 +63,7 @@ void RigidBody::FixedUpdate(float timeStep)
 	{
 		m_velocity = { 0.0f, 0.0f }; // Stop rigidbody from moving after enough drag.
 	}
-	if (abs(m_angularVelocity) < MIN_ANGULAR_THRESHOLD)
+	if (glm::abs(m_angularVelocity) < MIN_ANGULAR_THRESHOLD)
 	{
 		m_angularVelocity = 0.0f; // Stop rigidbody from rotating after enough angular drag.
 	}

@@ -9,7 +9,7 @@ class RigidBody;
 class Plane : public PhysicsObject
 {
 public:
-	Plane(float elasticity = 1.0f, glm::vec2 normal = { 0.f, 1.f }, float distance = 0.0f, glm::vec4 colour = { 0, 1, 0, 1 }, float length = 256.0f);
+	Plane(float elasticity = 1.0f, glm::vec2 normal = { 0.f, 1.f }, float distance = 0.0f, glm::vec4 colour = { 0, 1, 0, 1 }, float length = 256.0f, float depth = 8.0f);
 	virtual ~Plane();
 
 	virtual void FixedUpdate(float timeStep) override;
@@ -30,5 +30,6 @@ protected:
 	glm::vec4 m_colour;
 
 	float m_length;
+	float m_depth;
 
 };
