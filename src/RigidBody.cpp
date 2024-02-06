@@ -28,14 +28,14 @@ void RigidBody::FixedUpdate(float timeStep)
 
 	if (m_isTrigger)
 	{
-		for (auto it = m_objectsInside.begin(); it != m_objectsInsideThisFrame.end(); ++it)
+		for (std::list<PhysicsObject *>::iterator it = m_objectsInside.begin(); it != m_objectsInside.end(); ++it)
 		{
 			if (std::find(m_objectsInsideThisFrame.begin(), m_objectsInsideThisFrame.end(), *it) == m_objectsInsideThisFrame.end())
 			{
 				if (triggerExit)
 					triggerExit(*it);
-				it = m_objectsInsideThisFrame.erase(it);
-				if (it == m_objectsInsideThisFrame.end())
+				it = m_objectsInside.erase(it);
+				if (it == m_objectsInside.end())
 					break;
 			}
 		}

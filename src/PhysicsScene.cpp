@@ -74,7 +74,7 @@ void PhysicsScene::Update(float deltaTime)
 		}
 
 		float energy = GetTotalEnergy(); // Diagnostics.
-		std::cout << "Total Energy in Physics Scene: " << energy << std::endl;
+		//std::cout << "Total Energy in Physics Scene: " << energy << std::endl;
 
 		accumulatedTime -= m_timeStep;
 	}
