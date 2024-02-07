@@ -14,6 +14,8 @@ OBB::~OBB()
 
 void OBB::Draw()
 {
+	if (m_colour.a <= 0)
+		return;
 	glm::vec2 p1 = m_position - GetLocalX() * m_extents.x - GetLocalY() * m_extents.y;
 	glm::vec2 p2 = m_position + GetLocalX() * m_extents.x - GetLocalY() * m_extents.y;
 	glm::vec2 p3 = m_position - GetLocalX() * m_extents.x + GetLocalY() * m_extents.y;

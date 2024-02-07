@@ -24,6 +24,9 @@ void Plane::FixedUpdate(float timeStep)
 
 void Plane::Draw()
 {
+	if (m_colour.a <= 0)
+		return;
+
 	// Draws the (infinite) line as a quad.
 	float lineDepth = m_depth; // The depth/height of the quad.
 	float lineSegmentLength = m_length + lineDepth; // Limit length since you can't draw infinitely.
@@ -37,10 +40,10 @@ void Plane::Draw()
 	glm::vec2 start = centerPoint + (parallel * lineSegmentLength); // Leftmost vertex of quad.
 	glm::vec2 end = centerPoint - (parallel * lineSegmentLength); // Rightmost vertex of quad.
 
-	//aie::Gizmos::add2DLine(start, end, m_colour); // Draw the line.
+	aie::Gizmos::add2DLine(start, end, m_colour); // Draw the line.
 
-	aie::Gizmos::add2DTri(start, end, start - m_normal * lineDepth, m_colour, m_colour, colourFade); // Draw first triangle of quad
-	aie::Gizmos::add2DTri(end, end - m_normal * lineDepth, start - m_normal * lineDepth, m_colour, colourFade, colourFade); // Draw second triangle of quad
+	//aie::Gizmos::add2DTri(start, end, start - m_normal * lineDepth, m_colour, m_colour, colourFade); // Draw first triangle of quad
+	//aie::Gizmos::add2DTri(end, end - m_normal * lineDepth, start - m_normal * lineDepth, m_colour, colourFade, colourFade); // Draw second triangle of quad
 }
 
 void Plane::ResetPosition()

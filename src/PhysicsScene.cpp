@@ -109,13 +109,18 @@ float PhysicsScene::GetTotalEnergy()
 // Collision stuff.
 void PhysicsScene::ApplyContactForces(RigidBody *body1, RigidBody *body2, glm::vec2 normal, float penetration)
 {
+	if (body1 == nullptr)
+		return;
 	if ((body1 && body1->IsTrigger()) || (body2 && body2->IsTrigger()))
+		return;
+	if ((body1 && body1->IsKinematic()) && (body2 && body2->IsKinematic()))
 		return;
 
 	float body2Mass = body2 ? body2->GetMass() : INT_MAX;
 	float body1Factor = body2Mass / (body1->GetMass() + body2Mass);
-	body1->SetPosition(body1->GetPosition() - body1Factor * normal * penetration);
-	if (body2)
+	if (body1->IsKinematic() == false)
+		body1->SetPosition(body1->GetPosition() - body1Factor * normal * penetration);
+	if (body2 && body2->IsKinematic() == false)
 		body2->SetPosition(body2->GetPosition() + (1 - body1Factor) * normal * penetration);
 }
 
@@ -243,7 +248,7 @@ bool PhysicsScene::Box2Sphere(PhysicsObject *obj1, PhysicsObject *obj2)
 		float penetration = sphere->GetRadius() - glm::length(circleToBox);
 		if (penetration > 0)
 		{
-			glm::vec2 direction = glm::normalize(circleToBox);
+			glm::vec2 direction = glm::length(circleToBox) == 0 ? circleToBox : glm::normalize(circleToBox);
 			glm::vec2 contact = closestPointOnBoxWorld;
 			box->ResolveCollision(sphere, contact, &direction, penetration);
 			return true;

@@ -33,7 +33,7 @@ void RigidBody::FixedUpdate(float timeStep)
 			if (std::find(m_objectsInsideThisFrame.begin(), m_objectsInsideThisFrame.end(), *it) == m_objectsInsideThisFrame.end())
 			{
 				if (triggerExit)
-					triggerExit(*it);
+					triggerExit(this, *it);
 				it = m_objectsInside.erase(it);
 				if (it == m_objectsInside.end())
 					break;
@@ -79,7 +79,7 @@ void RigidBody::TriggerEnter(PhysicsObject *actor2)
 	{
 		m_objectsInside.push_back(actor2);
 		if (triggerEnter != nullptr)
-			triggerEnter(actor2);
+			triggerEnter(this, actor2);
 	}
 }
 
@@ -96,7 +96,8 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 	m_objectsInsideThisFrame.push_back(actor2);
 	actor2->m_objectsInsideThisFrame.push_back(this);
 
-	glm::vec2 normal = glm::normalize(collisionNormal ? *collisionNormal : actor2->GetPosition() - m_position);
+	glm::vec2 pNormal = collisionNormal ? *collisionNormal : actor2->GetPosition() - m_position;
+	glm::vec2 normal = glm::length(pNormal) == 0 ? glm::vec2(0, 0) : glm::normalize(pNormal);
 	glm::vec2 relVelocity = actor2->GetVelocity() - m_velocity;
 
 	glm::vec2 perpendicular = glm::vec2(normal.y, -normal.x);
@@ -128,9 +129,9 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 				actor2->ApplyForce(force, contact - actor2->GetPosition());
 
 			if (collisionCallback != nullptr)
-				collisionCallback(actor2);
+				collisionCallback(this, actor2);
 			if (actor2->collisionCallback != nullptr)
-				actor2->collisionCallback(this);
+				actor2->collisionCallback(actor2, this);
 		}
 		else
 		{

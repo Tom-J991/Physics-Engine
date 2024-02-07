@@ -20,7 +20,10 @@ public:
 	virtual void update(float deltaTime) override;
 	virtual void draw() override;
 
-	glm::vec2 ScreenToWorld(glm::vec2 screenPosition);
+	static glm::vec2 ScreenToWorld(glm::vec2 screenPosition);
+
+private:
+	void BallInHole(PhysicsObject *collisionObj, PhysicsObject *other);
 
 protected:
 	aie::Renderer2D *m_2dRenderer = nullptr;

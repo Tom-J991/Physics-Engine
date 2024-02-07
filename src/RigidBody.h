@@ -47,10 +47,10 @@ public:
 	void SetIsTrigger(const bool trigger) { m_isTrigger = trigger; }
 
 public:
-	std::function<void(PhysicsObject *)> collisionCallback;
+	std::function<void(PhysicsObject *, PhysicsObject *)> collisionCallback;
 
-	std::function<void(PhysicsObject *)> triggerEnter;
-	std::function<void(PhysicsObject *)> triggerExit;
+	std::function<void(PhysicsObject *, PhysicsObject *)> triggerEnter;
+	std::function<void(PhysicsObject *, PhysicsObject *)> triggerExit;
 
 protected:
 	std::list<PhysicsObject *> m_objectsInside;

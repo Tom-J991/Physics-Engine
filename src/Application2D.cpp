@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <utility>
 
 #include "Common.h"
 
@@ -21,18 +22,28 @@
 const float extents = 100;
 static float aspectRatio;
 
-const float physicsTimeStep = 1 / 60.0f;
+const float physicsTimeStep = 1 / 144.0f;
 
-Sphere *ball1; // All these instances get deleted by the physics scene when the physics scene is deleted.
+Ball *cueBall; // All these instances get deleted by the physics scene when the physics scene is deleted.
+Spring *spring;
 Plane *planeLeft;
 Plane *planeRight;
 Plane *planeBottom;
 Plane *planeTop;
-Spring *spring;
+
+Ball *holeTrigger1;
+Ball *holeTrigger2;
+Ball *holeTrigger3;
+Ball *holeTrigger4;
+Ball *holeTrigger5;
+Ball *holeTrigger6;
 
 std::vector<Ball*> billiards;
 
 aie::Texture *backgroundImg;
+aie::Texture *poolTable;
+aie::Texture *poolTableShadow;
+aie::Texture *shadowImg;
 aie::Texture **ballTextures;
 
 int GetBallNumber()
@@ -63,7 +74,11 @@ bool Application2D::startup()
 
 	m_2dRenderer = new aie::Renderer2D();
 
-	backgroundImg = new aie::Texture("./textures/pool_table.jpg");
+	backgroundImg = new aie::Texture("./textures/background.jpg");
+	poolTable = new aie::Texture("./textures/table.png");
+	poolTableShadow = new aie::Texture("./textures/table_shadow.png");
+
+	shadowImg = new aie::Texture("./textures/shadow.png");
 
 	ballTextures = new aie::Texture*[16];
 	{
@@ -91,16 +106,69 @@ bool Application2D::startup()
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
 	m_physicsScene->SetTimeStep(physicsTimeStep);
 
-	ball1 = new Ball({ 0, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
-	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -80.0f, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)) / aspectRatio, 10.0f);
-	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -80.0f, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)) / aspectRatio, 10.0f);
-	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -80.0f / aspectRatio, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)), 10.0f);
-	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -80.0f / aspectRatio, { 0.5f, 0.3f, 0.1f, 1 }, (extents - (extents - 80.0f)), 10.0f);
+	// Table Boundaries
+	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)) / aspectRatio, 10.0f);
+	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)) / aspectRatio, 10.0f);
+	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -70.0f / aspectRatio, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)), 10.0f);
+	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -70.0f / aspectRatio, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)), 10.0f);
 
-	spring = new Spring(nullptr, ball1, 8, 0, 1024, { 0, 20 });
+	m_physicsScene->AddActors({ planeLeft, planeRight, planeBottom, planeTop });
+
+	// Table Borders, unfortunately messy and a lot of values were found by trial and error.
+	OBB *boxL = new OBB({ -65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, 0 });
+	OBB *boxR = new OBB({ 65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, 0 });
+	OBB *boxUL = new OBB({ -31, 61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25.5f, 4 }, { 1, 1, 1, 0 });
+	OBB *boxUR = new OBB({ 30.5f, 61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25, 4 }, { 1, 1, 1, 0 });
+	OBB *boxBL = new OBB({ -31, -61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25.5f, 4 }, { 1, 1, 1, 0 });
+	OBB *boxBR = new OBB({ 30.5f, -61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25, 4 }, { 1, 1, 1, 0 });
+
+	OBB *boxCornerUL1 = new OBB({ -63.63f, 45 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerUL2 = new OBB({ -57, 59 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerUR1 = new OBB({ 63.63f, 45 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerUR2 = new OBB({ 56, 59 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	//
+	OBB *boxCornerBL1 = new OBB({ -63.63f, -45 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerBL2 = new OBB({ -57, -59 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerBR1 = new OBB({ 63.63f, -45 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerBR2 = new OBB({ 56, -59 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	//
+	OBB *boxCornerUM1 = new OBB({ 5, 57.7f / aspectRatio }, { 0, 0 }, 0, glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
+	OBB *boxCornerUM2 = new OBB({ -5, 57.7f / aspectRatio }, { 0, 0 }, 0, -glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
+	OBB *boxCornerBM1 = new OBB({ 5, -57.7f / aspectRatio }, { 0, 0 }, 0, -glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
+	OBB *boxCornerBM2 = new OBB({ -5, -57.7f / aspectRatio }, { 0, 0 }, 0, glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
+
+	boxL->SetKinematic(true);
+	boxR->SetKinematic(true);
+	boxUL->SetKinematic(true);
+	boxUR->SetKinematic(true);
+	boxBL->SetKinematic(true);
+	boxBR->SetKinematic(true);
+
+	boxCornerUL1->SetKinematic(true);
+	boxCornerUL2->SetKinematic(true);
+	boxCornerUR1->SetKinematic(true);
+	boxCornerUR2->SetKinematic(true);
+	boxCornerBL1->SetKinematic(true);
+	boxCornerBL2->SetKinematic(true);
+	boxCornerBR1->SetKinematic(true);
+	boxCornerBR2->SetKinematic(true);
+	boxCornerUM1->SetKinematic(true);
+	boxCornerUM2->SetKinematic(true);
+	boxCornerBM1->SetKinematic(true);
+	boxCornerBM2->SetKinematic(true);
+
+	m_physicsScene->AddActors({ boxL, boxR, boxUL, boxUR, boxBL, boxBR });
+	m_physicsScene->AddActors(
+		{ boxCornerUL1, boxCornerUL2, boxCornerUR1, boxCornerUR2, 
+		boxCornerBL1, boxCornerBL2, boxCornerBR1, boxCornerBR2, 
+		boxCornerUM1, boxCornerUM2, boxCornerBM1, boxCornerBM2 });
+
+	// Game objects.
+	cueBall = new Ball({ 0, -20 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
+	spring = new Spring(nullptr, cueBall, 8, 32, 128, { 0, 20 });
 
 	int count = 4;
-	for (int i = count; i >= 0; --i)
+	for (int i = count; i >= 0; --i) // Setup ball triangle.
 	{
 		float offset = 0;
 		for (int k = count - i; k >= 0; --k)
@@ -110,8 +178,8 @@ bool Application2D::startup()
 		for (int j = i; j >= 0; --j)
 		{
 			float radius = 2.0f;
-			float x = j + offset;
-			float y = (float)i;
+			float x = (float)i;
+			float y = j + offset;
 
 			float height = (count+1) * radius * 2;
 			glm::vec2 trianglePosition = { extents / 4, -height/2 };
@@ -120,9 +188,9 @@ bool Application2D::startup()
 			aie::Texture *tex = ballTextures[num];
 
 			Ball *newBall = new Ball(
-				trianglePosition + glm::vec2(y * radius * 2, x * radius * 2 ),
+				trianglePosition + glm::vec2(x * radius * 2, y * radius * 2 ),
 				{ 0, 0 }, 
-				4.0f, 0.0f, 0.3f, 0.3f, 0.3f, 0.8f, 
+				4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 
 				radius, num, tex, m_2dRenderer);
 			newBall->SetRotationLock(true);
 
@@ -132,7 +200,36 @@ bool Application2D::startup()
 		}
 	}
 
-	m_physicsScene->AddActors({ ball1, planeLeft, planeRight, planeBottom, planeTop });
+	// Setup holes.
+	const float holeRadius = 3.5f;
+	holeTrigger1 = new Ball({ 0, 33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger2 = new Ball({ 0, -33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger3 = new Ball({ -63.75f, 31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger4 = new Ball({ 62.65f, 31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger5 = new Ball({ -63.75f, -31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger6 = new Ball({ 62.65f, -31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+
+	holeTrigger1->SetKinematic(true);
+	holeTrigger1->SetIsTrigger(true);
+	holeTrigger2->SetKinematic(true);
+	holeTrigger2->SetIsTrigger(true);
+	holeTrigger3->SetKinematic(true);
+	holeTrigger3->SetIsTrigger(true);
+	holeTrigger4->SetKinematic(true);
+	holeTrigger4->SetIsTrigger(true);
+	holeTrigger5->SetKinematic(true);
+	holeTrigger5->SetIsTrigger(true);
+	holeTrigger6->SetKinematic(true);
+	holeTrigger6->SetIsTrigger(true);
+
+	holeTrigger1->triggerEnter = std::bind(&Application2D::BallInHole, this, std::placeholders::_1, std::placeholders::_2);
+	holeTrigger2->triggerEnter = std::bind(&Application2D::BallInHole, this, std::placeholders::_1, std::placeholders::_2);
+	holeTrigger3->triggerEnter = std::bind(&Application2D::BallInHole, this, std::placeholders::_1, std::placeholders::_2);
+	holeTrigger4->triggerEnter = std::bind(&Application2D::BallInHole, this, std::placeholders::_1, std::placeholders::_2);
+	holeTrigger5->triggerEnter = std::bind(&Application2D::BallInHole, this, std::placeholders::_1, std::placeholders::_2);
+	holeTrigger6->triggerEnter = std::bind(&Application2D::BallInHole, this, std::placeholders::_1, std::placeholders::_2);
+
+	m_physicsScene->AddActors({ cueBall, holeTrigger1, holeTrigger2, holeTrigger3, holeTrigger4, holeTrigger5, holeTrigger6 });
 
 	return true;
 }
@@ -160,38 +257,41 @@ void Application2D::update(float deltaTime)
 	static glm::vec2 objectDragVelocity = { 0, 0 };
 
 	//
-	if (ball1->IsInside(mouseInWorld))
+	if (cueBall->IsCaught() == false)
 	{
-		ball1->SetColour({ 1, 1, 0, 1 });
-		if (ball1Dragging == false && input->isMouseButtonDown(0))
+		if (cueBall->IsInside(mouseInWorld))
 		{
-			ball1Offset = ball1->GetPosition() - mouseInWorld;
-			ball1Dragging = true;
+			cueBall->SetColour({ 1, 1, 0, 1 });
+			if (ball1Dragging == false && input->isMouseButtonDown(0))
+			{
+				ball1Offset = cueBall->GetPosition() - mouseInWorld;
+				ball1Dragging = true;
+			}
 		}
-	}
-	else
-	{
-		ball1->SetColour({ 1, 0, 0, 1 });
-	}
-	if (input->isMouseButtonDown(0) && ball1Dragging == true)
-	{
-		ball1->SetColour({ 1, 1, 1, 1 });
+		else
+		{
+			cueBall->SetColour({ 1, 0, 0, 1 });
+		}
+		if (input->isMouseButtonDown(0) && ball1Dragging == true)
+		{
+			cueBall->SetColour({ 1, 1, 1, 1 });
 
-		glm::vec2 newPos = mouseInWorld + ball1Offset;
-		objectDragVelocity = newPos - previousBall1Pos;
-		previousBall1Pos = newPos;
+			glm::vec2 newPos = mouseInWorld + ball1Offset;
+			objectDragVelocity = newPos - previousBall1Pos;
+			previousBall1Pos = newPos;
 
-		ball1->SetKinematic(true);
-		ball1->SetPosition(newPos);
-	}
-	if (input->isMouseButtonUp(0) && ball1Dragging == true)
-	{
-		glm::vec2 deltaVel = objectDragVelocity - ball1->GetVelocity();
-		glm::vec2 accel = deltaVel / physicsTimeStep;
-		ball1->SetKinematic(false);
-		ball1->ApplyForce(ball1->GetMass() * accel, { 0, 0 });
-		objectDragVelocity = { 0, 0 };
-		ball1Dragging = false;
+			cueBall->SetKinematic(true);
+			cueBall->SetPosition(newPos);
+		}
+		if (input->isMouseButtonUp(0) && ball1Dragging == true)
+		{
+			glm::vec2 deltaVel = objectDragVelocity - cueBall->GetVelocity();
+			glm::vec2 accel = deltaVel / physicsTimeStep;
+			cueBall->SetKinematic(false);
+			cueBall->ApplyForce(cueBall->GetMass() * accel, { 0, 0 });
+			objectDragVelocity = { 0, 0 };
+			ball1Dragging = false;
+		}
 	}
 
 	aie::Gizmos::clear(); // Clear Gizmos.
@@ -209,16 +309,26 @@ void Application2D::draw()
 	// wipe the screen to the background colour
 	clearScreen();
 
+	// Begin drawing background
 	m_2dRenderer->begin();
 
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
 	m_2dRenderer->setUVRect(0, 0, 4 * aspectRatio, 4);
-	m_2dRenderer->drawSprite(backgroundImg, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f);
+	m_2dRenderer->drawSprite(backgroundImg, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 99.0f);
 
 	m_2dRenderer->end();
 
-	// begin drawing sprites
+	// begin drawing sprites on foreground
 	m_2dRenderer->begin();
+
+	const float scaleFactorW = (poolTableShadow->getWidth() / (float)poolTable->getWidth());
+	const float scaleFactorH = (poolTableShadow->getHeight() / (float)poolTable->getHeight());
+	m_2dRenderer->setUVRect(0, 0, 1, 1);
+	m_2dRenderer->setRenderColour(0xFFFFFF80);
+	m_2dRenderer->drawSprite(poolTableShadow, SCREEN_WIDTH / 2 + 8, SCREEN_HEIGHT / 2 - 16, SCREEN_WIDTH * scaleFactorW - 384, SCREEN_HEIGHT * scaleFactorH - 384 / aspectRatio, 0.0f, 98.0f);
+	
+	m_2dRenderer->setRenderColour(0xFFFFFFFF);
+	m_2dRenderer->drawSprite(poolTable, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH - 384, SCREEN_HEIGHT - 384 / aspectRatio, 0.0f, 98.0f);
 
 	m_physicsScene->Draw();
 	aie::Gizmos::draw2D(glm::ortho<float>(-extents, extents, -extents / aspectRatio, extents / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
@@ -246,4 +356,20 @@ glm::vec2 Application2D::ScreenToWorld(glm::vec2 screenPosition)
 	worldPosition.x *= 2.0f * extents / SCREEN_WIDTH;
 	worldPosition.y *= 2.0f * extents / (aspectRatio * SCREEN_HEIGHT);
 	return worldPosition;
+}
+
+void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other)
+{
+	Ball *hole = dynamic_cast<Ball *>(collisionObj);
+	Ball *ball = dynamic_cast<Ball *>(other);
+
+	if (ball != nullptr)
+	{
+		ball->SetKinematic(true);
+		ball->lerpFinishCallback = [=](PhysicsObject *obj)
+		{
+			ball->SetCaught(true);
+		};
+		ball->LerpToPoint(hole->GetPosition(), 8.0f, 0.1f);
+	}
 }
