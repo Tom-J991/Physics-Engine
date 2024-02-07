@@ -66,6 +66,8 @@ Application2D::~Application2D()
 
 bool Application2D::startup() 
 {
+	setVSync(false);
+
 	srand(time(nullptr));
 
 	aspectRatio = SCREEN_WIDTH / (float)SCREEN_HEIGHT;

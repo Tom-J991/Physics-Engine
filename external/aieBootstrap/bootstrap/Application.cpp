@@ -36,7 +36,7 @@ bool Application::createWindow(const char* title, int width, int height, bool fu
 		return false;
 	}
 
-	glfwSwapInterval(0); // Disable v-sync - Thomas Jackson :)
+	glfwSwapInterval(1);
 
 	glfwSetWindowSizeCallback(m_window, [](GLFWwindow*, int w, int h){ glViewport(0, 0, w, h); });
 
