@@ -3,7 +3,7 @@
 #include "Gizmos.h"
 
 Spring::Spring(RigidBody *body1, RigidBody *body2, float damping, float restLength, float springCoefficient, glm::vec2 contact1, glm::vec2 contact2)
-	: RigidBody(JOINT, { 0, 0 }, { 0, 0 }, INT_MAX, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f)
+	: RigidBody(JOINT, { 0, 0 }, { 0, 0 }, (float)INT_MAX, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f)
 	, m_body1(body1)
 	, m_body2(body2)
 	, m_contact1(contact1)
@@ -13,7 +13,9 @@ Spring::Spring(RigidBody *body1, RigidBody *body2, float damping, float restLeng
 	, m_springCoefficient(springCoefficient)
 { }
 Spring::~Spring()
-{ }
+{ 
+	RigidBody::~RigidBody();
+}
 
 void Spring::FixedUpdate(float timeStep)
 {

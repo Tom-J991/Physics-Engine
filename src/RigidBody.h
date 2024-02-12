@@ -51,7 +51,7 @@ public:
 
 	std::function<void(PhysicsObject *, PhysicsObject *)> triggerEnter;
 	std::function<void(PhysicsObject *, PhysicsObject *)> triggerExit;
-
+	  
 protected:
 	std::list<PhysicsObject *> m_objectsInside;
 	std::list<PhysicsObject *> m_objectsInsideThisFrame;
@@ -60,11 +60,11 @@ protected:
 	glm::vec2 m_velocity;
 
 	float m_mass;
+	float m_moment; // Moment of inertia.
 	float m_orientation; // Rotation (radians).
 	float m_angularVelocity;
-	float m_linearDrag;
+	float m_linearDrag; // Friction
 	float m_angularDrag;
-	float m_moment; // Moment of inertia.
 
 	glm::vec2 m_localX = { 1, 0 }; // Hold two rotation matrix axes mostly for performance reasons.
 	glm::vec2 m_localY = { 0, 1 };

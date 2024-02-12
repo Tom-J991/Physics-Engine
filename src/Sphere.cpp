@@ -10,19 +10,21 @@ Sphere::Sphere(glm::vec2 position, glm::vec2 velocity, float mass, float orienta
 	m_moment = 0.5f * m_mass * m_radius * m_radius;
 }
 Sphere::~Sphere()
-{ }
+{ 
+	RigidBody::~RigidBody();
+}
 
 void Sphere::Draw()
 {
-	glm::vec2 end = glm::vec2(std::cos(m_orientation), std::sin(m_orientation)) * m_radius;
+	// Draw circles.
 	glm::vec4 outlineColour = m_colour - 0.333f;
 	outlineColour.a = 1.0f;
 	aie::Gizmos::add2DCircle(m_position, m_radius, 24, outlineColour);
 	aie::Gizmos::add2DCircle(m_position, m_radius - 1, 12, m_colour);
-	//aie::Gizmos::add2DLine(m_position, m_position + end, { 1, 1, 1, 1 }); // Rotation line. (except rotation doesn't work)
 }
 
 bool Sphere::IsInside(glm::vec2 point)
 {
+	// Check if point is within sphere.
 	return glm::distance(point, m_position) <= m_radius;
 }

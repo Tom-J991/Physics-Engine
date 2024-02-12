@@ -1,5 +1,7 @@
 #include "OBB.h"
 
+#include "Common.h"
+
 #include "Gizmos.h"
 
 OBB::OBB(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, float angularVelocity, float linearDrag, float angularDrag, float elasticity, glm::vec2 extents, glm::vec4 colour)
@@ -10,18 +12,24 @@ OBB::OBB(glm::vec2 position, glm::vec2 velocity, float mass, float orientation, 
 	m_moment = 1.0f / 12.0f * m_mass * GetWidth() * GetHeight();
 }
 OBB::~OBB()
-{ }
+{ 
+	RigidBody::~RigidBody();
+}
 
 void OBB::Draw()
 {
-	if (m_colour.a <= 0)
+	glm::vec4 drawColor = m_colour;
+	drawColor.a = GLOBALS::g_DEBUG ? 1.0f : m_colour.a;
+
+	if (drawColor.a <= 0)
 		return;
+
 	glm::vec2 p1 = m_position - GetLocalX() * m_extents.x - GetLocalY() * m_extents.y;
 	glm::vec2 p2 = m_position + GetLocalX() * m_extents.x - GetLocalY() * m_extents.y;
 	glm::vec2 p3 = m_position - GetLocalX() * m_extents.x + GetLocalY() * m_extents.y;
 	glm::vec2 p4 = m_position + GetLocalX() * m_extents.x + GetLocalY() * m_extents.y;
-	aie::Gizmos::add2DTri(p1, p2, p4, m_colour);
-	aie::Gizmos::add2DTri(p1, p4, p3, m_colour);
+	aie::Gizmos::add2DTri(p1, p2, p4, drawColor);
+	aie::Gizmos::add2DTri(p1, p4, p3, drawColor);
 }
 
 bool OBB::CheckBoxCorners(const OBB &box, glm::vec2 &contact, int &numContacts, float &pen, glm::vec2 &edgeNormal)

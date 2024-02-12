@@ -22,7 +22,7 @@ public:
 	void LerpToPoint(glm::vec2 point, float lerpSpeed = 4.0f, float lerpThreshold = 0.01f, bool snapOnFinish = false);
 
 public:
-	std::function<void(PhysicsObject *)> lerpFinishCallback;
+	std::function<void(PhysicsObject *)> lerpFinishCallback; // Function to call when lerp has finished.
 
 protected:
 	glm::vec2 TransformCoordinates(glm::vec2 coordinates);
@@ -32,17 +32,24 @@ protected:
 	aie::Renderer2D *m_2dRenderer = nullptr;
 	aie::Texture *m_texture = nullptr;
 	aie::Texture *m_shadowTexture = nullptr;
-	bool m_hasShadow;
+	bool m_hasShadow; // Draw the shadow, or not.
 	
-	glm::vec4 m_fadeToBlack = { 1, 1, 1, 1 };
-
 	int m_number = -1;
-	bool m_caught = false;
+	bool m_caught = false; // Has the ball been caught? (potted)
 
+	glm::vec4 m_fadeToBlack = { 1, 1, 1, 1 }; // Fade color.
+
+	// Lerp stuff.
 	bool m_isLerping = false;
 	glm::vec2 m_lerpPoint;
 	float m_lerpSpeed = 4.0f;
 	float m_lerpThreshold = 0.01f;
 	bool m_lerpSnap = false;
+
+	// Dragging ball stuff.
+	bool ballDragging = false;
+	glm::vec2 ballOffset = { 0, 0 };
+	glm::vec2 previousBallPos = ballOffset;
+	glm::vec2 dragDisplacement = { 0, 0 };
 
 };

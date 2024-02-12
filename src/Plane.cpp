@@ -1,5 +1,7 @@
 #include "Plane.h"
 
+#include "Common.h"
+
 #include "Gizmos.h"
 
 #include "RigidBody.h"
@@ -24,7 +26,10 @@ void Plane::FixedUpdate(float timeStep)
 
 void Plane::Draw()
 {
-	if (m_colour.a <= 0)
+	glm::vec4 drawColor = m_colour;
+	drawColor.a = GLOBALS::g_DEBUG ? 1.0f : m_colour.a;
+
+	if (drawColor.a <= 0)
 		return;
 
 	// Draws the (infinite) line as a quad.
@@ -34,13 +39,13 @@ void Plane::Draw()
 	glm::vec2 centerPoint = m_normal * m_distanceToOrigin;
 	glm::vec2 parallel(m_normal.y, -m_normal.x);
 
-	glm::vec4 colourFade = m_colour; // Gradient
-	//colourFade.a = 0.0f;
+	glm::vec4 colourFade = drawColor; // Gradient
+	colourFade.a = 0.0f;
 
 	glm::vec2 start = centerPoint + (parallel * lineSegmentLength); // Leftmost vertex of quad.
 	glm::vec2 end = centerPoint - (parallel * lineSegmentLength); // Rightmost vertex of quad.
 
-	aie::Gizmos::add2DLine(start, end, m_colour); // Draw the line.
+	aie::Gizmos::add2DLine(start, end, drawColor); // Draw the line.
 
 	//aie::Gizmos::add2DTri(start, end, start - m_normal * lineDepth, m_colour, m_colour, colourFade); // Draw first triangle of quad
 	//aie::Gizmos::add2DTri(end, end - m_normal * lineDepth, start - m_normal * lineDepth, m_colour, colourFade, colourFade); // Draw second triangle of quad

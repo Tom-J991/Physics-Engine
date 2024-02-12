@@ -5,6 +5,8 @@
 
 #include "PhysicsScene.h"
 
+#include <fmod.h>
+
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
@@ -23,11 +25,13 @@ public:
 	static glm::vec2 ScreenToWorld(glm::vec2 screenPosition);
 
 private:
-	void BallInHole(PhysicsObject *collisionObj, PhysicsObject *other);
+	void BallInHole(PhysicsObject *collisionObj, PhysicsObject *other); // Callback function.
 
 protected:
 	aie::Renderer2D *m_2dRenderer = nullptr;
 
 	PhysicsScene *m_physicsScene = nullptr;
+	
+	FMOD_SYSTEM *m_fmodSystem = nullptr;
 
 };

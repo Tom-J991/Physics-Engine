@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Physics Objects">
+      <UniqueIdentifier>{b57eccca-c58d-4200-a323-c832dabfb7cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Physics Objects">
+      <UniqueIdentifier>{67b1ff3e-1960-4bf6-9ac4-95eba559e8cc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -24,23 +30,23 @@
     <ClCompile Include="src\PhysicsScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\RigidBody.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Sphere.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Plane.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Ball.cpp">
+      <Filter>Source Files\Physics Objects</Filter>
     </ClCompile>
     <ClCompile Include="src\OBB.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Physics Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Plane.cpp">
+      <Filter>Source Files\Physics Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RigidBody.cpp">
+      <Filter>Source Files\Physics Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Sphere.cpp">
+      <Filter>Source Files\Physics Objects</Filter>
     </ClCompile>
     <ClCompile Include="src\Spring.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Ball.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Physics Objects</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -53,26 +59,26 @@
     <ClInclude Include="src\PhysicsScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\PhysicsObject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\RigidBody.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Sphere.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Plane.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\Ball.h">
+      <Filter>Header Files\Physics Objects</Filter>
     </ClInclude>
     <ClInclude Include="src\OBB.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Physics Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PhysicsObject.h">
+      <Filter>Header Files\Physics Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Plane.h">
+      <Filter>Header Files\Physics Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RigidBody.h">
+      <Filter>Header Files\Physics Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sphere.h">
+      <Filter>Header Files\Physics Objects</Filter>
     </ClInclude>
     <ClInclude Include="src\Spring.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Ball.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Physics Objects</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -6,6 +6,8 @@
 
 #include "Common.h"
 
+#include <fmod_errors.h>
+
 #include "Gizmos.h"
 #include "Texture.h"
 #include "Font.h"
@@ -66,16 +68,27 @@ Application2D::~Application2D()
 
 bool Application2D::startup() 
 {
+	// Setup application.
 	setVSync(false);
+	srand((unsigned int)time(nullptr)); // Set random seed.
 
-	srand(time(nullptr));
+	// Setup FMOD.
+	FMOD_RESULT result;
+	m_fmodSystem = nullptr;
+	result = FMOD_System_Create(&m_fmodSystem, FMOD_VERSION);
 
+	if (result != FMOD_OK)
+	{
+		std::printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+		return false;
+	}
+
+	// Create renderer and scene.
 	aspectRatio = SCREEN_WIDTH / (float)SCREEN_HEIGHT;
-
 	aie::Gizmos::create(255U, 255U, 65535U, 65535U);
-
 	m_2dRenderer = new aie::Renderer2D();
 
+	// Load resources.
 	backgroundImg = new aie::Texture("./textures/background.jpg");
 	poolTable = new aie::Texture("./textures/table.png");
 	poolTableShadow = new aie::Texture("./textures/table_shadow.png");
@@ -104,6 +117,7 @@ bool Application2D::startup()
 
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
 
+	// Setup scene.
 	m_physicsScene = new PhysicsScene();
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
 	m_physicsScene->SetTimeStep(physicsTimeStep);
@@ -116,28 +130,29 @@ bool Application2D::startup()
 
 	m_physicsScene->AddActors({ planeLeft, planeRight, planeBottom, planeTop });
 
-	// Table Borders, unfortunately messy and a lot of values were found by trial and error.
-	OBB *boxL = new OBB({ -65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, 0 });
-	OBB *boxR = new OBB({ 65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, 0 });
-	OBB *boxUL = new OBB({ -31, 61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25.5f, 4 }, { 1, 1, 1, 0 });
-	OBB *boxUR = new OBB({ 30.5f, 61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25, 4 }, { 1, 1, 1, 0 });
-	OBB *boxBL = new OBB({ -31, -61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25.5f, 4 }, { 1, 1, 1, 0 });
-	OBB *boxBR = new OBB({ 30.5f, -61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25, 4 }, { 1, 1, 1, 0 });
+	// Table walls, unfortunately messy and a lot of values were found by trial and error.
+	const int displayColl = 0;
+	OBB *boxL = new OBB({ -65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, displayColl });
+	OBB *boxR = new OBB({ 65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, displayColl });
+	OBB *boxUL = new OBB({ -31, 61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25.5f, 4 }, { 1, 1, 1, displayColl });
+	OBB *boxUR = new OBB({ 30.5f, 61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25, 4 }, { 1, 1, 1, displayColl });
+	OBB *boxBL = new OBB({ -31, -61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25.5f, 4 }, { 1, 1, 1, displayColl });
+	OBB *boxBR = new OBB({ 30.5f, -61 / aspectRatio }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 25, 4 }, { 1, 1, 1, displayColl });
 
-	OBB *boxCornerUL1 = new OBB({ -63.63f, 45 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
-	OBB *boxCornerUL2 = new OBB({ -57, 59 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
-	OBB *boxCornerUR1 = new OBB({ 63.63f, 45 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
-	OBB *boxCornerUR2 = new OBB({ 56, 59 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerUL1 = new OBB({ -63.63f, 45 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
+	OBB *boxCornerUL2 = new OBB({ -57, 59 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
+	OBB *boxCornerUR1 = new OBB({ 63.63f, 45 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
+	OBB *boxCornerUR2 = new OBB({ 56, 59 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
 	//
-	OBB *boxCornerBL1 = new OBB({ -63.63f, -45 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
-	OBB *boxCornerBL2 = new OBB({ -57, -59 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
-	OBB *boxCornerBR1 = new OBB({ 63.63f, -45 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
-	OBB *boxCornerBR2 = new OBB({ 56, -59 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, 0 });
+	OBB *boxCornerBL1 = new OBB({ -63.63f, -45 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
+	OBB *boxCornerBL2 = new OBB({ -57, -59 / aspectRatio }, { 0, 0 }, 0, glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
+	OBB *boxCornerBR1 = new OBB({ 63.63f, -45 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
+	OBB *boxCornerBR2 = new OBB({ 56, -59 / aspectRatio }, { 0, 0 }, 0, -glm::quarter_pi<float>(), 0.0f, 0.3f, 0.3f, 0.6f, { 2, 2 }, { 1, 1, 1, displayColl });
 	//
-	OBB *boxCornerUM1 = new OBB({ 5, 57.7f / aspectRatio }, { 0, 0 }, 0, glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
-	OBB *boxCornerUM2 = new OBB({ -5, 57.7f / aspectRatio }, { 0, 0 }, 0, -glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
-	OBB *boxCornerBM1 = new OBB({ 5, -57.7f / aspectRatio }, { 0, 0 }, 0, -glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
-	OBB *boxCornerBM2 = new OBB({ -5, -57.7f / aspectRatio }, { 0, 0 }, 0, glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, 0 });
+	OBB *boxCornerUM1 = new OBB({ 5, 57.7f / aspectRatio }, { 0, 0 }, 0, glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, displayColl });
+	OBB *boxCornerUM2 = new OBB({ -5, 57.7f / aspectRatio }, { 0, 0 }, 0, -glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, displayColl });
+	OBB *boxCornerBM1 = new OBB({ 5, -57.7f / aspectRatio }, { 0, 0 }, 0, -glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, displayColl });
+	OBB *boxCornerBM2 = new OBB({ -5, -57.7f / aspectRatio }, { 0, 0 }, 0, glm::pi<float>() / 7, 0.0f, 0.3f, 0.3f, 0.6f, { 1.5f, 1.5f }, { 1, 1, 1, displayColl });
 
 	boxL->SetKinematic(true);
 	boxR->SetKinematic(true);
@@ -169,11 +184,11 @@ bool Application2D::startup()
 	cueBall = new Ball({ 0, -20 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
 	spring = new Spring(nullptr, cueBall, 8, 32, 128, { 0, 20 });
 
-	int count = 4;
-	for (int i = count; i >= 0; --i) // Setup ball triangle.
+	int count = 5; // Amount of steps in the triangle.
+	for (int i = (count-1); i >= 0; --i) // Setup ball triangle.
 	{
 		float offset = 0;
-		for (int k = count - i; k >= 0; --k)
+		for (int k = (count-1) - i; k >= 0; --k)
 		{
 			offset += 0.5f;
 		}
@@ -183,7 +198,7 @@ bool Application2D::startup()
 			float x = (float)i;
 			float y = j + offset;
 
-			float height = (count+1) * radius * 2;
+			float height = count * radius * 2;
 			glm::vec2 trianglePosition = { extents / 4, -height/2 };
 
 			int num = GetBallNumber();
@@ -191,7 +206,7 @@ bool Application2D::startup()
 
 			Ball *newBall = new Ball(
 				trianglePosition + glm::vec2(x * radius * 2, y * radius * 2 ),
-				{ 0, 0 }, 
+				{ 0, 0 },
 				4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 
 				radius, num, tex, m_2dRenderer);
 			newBall->SetRotationLock(true);
@@ -206,10 +221,10 @@ bool Application2D::startup()
 	const float holeRadius = 3.5f;
 	holeTrigger1 = new Ball({ 0, 33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
 	holeTrigger2 = new Ball({ 0, -33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger3 = new Ball({ -63.75f, 31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger4 = new Ball({ 62.65f, 31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger5 = new Ball({ -63.75f, -31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger6 = new Ball({ 62.65f, -31.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger3 = new Ball({ -63.5f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger4 = new Ball({ 62.45f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger5 = new Ball({ -63.5f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger6 = new Ball({ 62.45f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
 
 	holeTrigger1->SetKinematic(true);
 	holeTrigger1->SetIsTrigger(true);
@@ -238,6 +253,18 @@ bool Application2D::startup()
 
 void Application2D::shutdown() 
 {
+	// Cleanup textures.
+	for (int i = 0; i < 16; ++i)
+	{
+		delete ballTextures[i];
+	}
+	delete[] ballTextures;
+
+	delete shadowImg;
+	delete poolTable;
+	delete poolTableShadow;
+	delete backgroundImg;
+
 	delete GLOBALS::g_font;
 }
 
@@ -245,61 +272,14 @@ void Application2D::update(float deltaTime)
 {
 	aie::Input* input = aie::Input::getInstance();
 
-	int mouseX, mouseY;
-	int mouseDeltaX, mouseDeltaY;
-	input->getMouseXY(&mouseX, &mouseY);
-	input->getMouseDelta(&mouseDeltaX, &mouseDeltaY);
+	aie::Gizmos::clear(); // Clear Gizmos on start of frame.
 
-	// Messy mouse dragging logic.
-	glm::vec2 mouseInWorld = ScreenToWorld({ mouseX, mouseY });
-
-	static bool ball1Dragging = false;
-	static glm::vec2 ball1Offset = { 0, 0 };
-	static glm::vec2 previousBall1Pos = ball1Offset;
-	static glm::vec2 objectDragVelocity = { 0, 0 };
-
-	//
-	if (cueBall->IsCaught() == false)
-	{
-		if (cueBall->IsInside(mouseInWorld))
-		{
-			cueBall->SetColour({ 1, 1, 0, 1 });
-			if (ball1Dragging == false && input->isMouseButtonDown(0))
-			{
-				ball1Offset = cueBall->GetPosition() - mouseInWorld;
-				ball1Dragging = true;
-			}
-		}
-		else
-		{
-			cueBall->SetColour({ 1, 0, 0, 1 });
-		}
-		if (input->isMouseButtonDown(0) && ball1Dragging == true)
-		{
-			cueBall->SetColour({ 1, 1, 1, 1 });
-
-			glm::vec2 newPos = mouseInWorld + ball1Offset;
-			objectDragVelocity = newPos - previousBall1Pos;
-			previousBall1Pos = newPos;
-
-			cueBall->SetKinematic(true);
-			cueBall->SetPosition(newPos);
-		}
-		if (input->isMouseButtonUp(0) && ball1Dragging == true)
-		{
-			glm::vec2 deltaVel = objectDragVelocity - cueBall->GetVelocity();
-			glm::vec2 accel = deltaVel / physicsTimeStep;
-			cueBall->SetKinematic(false);
-			cueBall->ApplyForce(cueBall->GetMass() * accel, { 0, 0 });
-			objectDragVelocity = { 0, 0 };
-			ball1Dragging = false;
-		}
-	}
-
-	aie::Gizmos::clear(); // Clear Gizmos.
-
-	// Physics scene.
+	// Update the Physics scene.
 	m_physicsScene->Update(deltaTime);
+
+	// Toggle debug.
+	if (input->wasKeyReleased(aie::INPUT_KEY_P))
+		GLOBALS::g_DEBUG = !GLOBALS::g_DEBUG;
 
 	// exit the application
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
@@ -323,6 +303,8 @@ void Application2D::draw()
 	// begin drawing sprites on foreground
 	m_2dRenderer->begin();
 
+	// MESSY
+	// Draw pool table.
 	const float scaleFactorW = (poolTableShadow->getWidth() / (float)poolTable->getWidth());
 	const float scaleFactorH = (poolTableShadow->getHeight() / (float)poolTable->getHeight());
 	m_2dRenderer->setUVRect(0, 0, 1, 1);
@@ -332,7 +314,8 @@ void Application2D::draw()
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
 	m_2dRenderer->drawSprite(poolTable, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH - 384, SCREEN_HEIGHT - 384 / aspectRatio, 0.0f, 98.0f);
 
-	m_physicsScene->Draw();
+	m_physicsScene->Draw(); // Draw the physics scene.
+
 	aie::Gizmos::draw2D(glm::ortho<float>(-extents, extents, -extents / aspectRatio, extents / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
 
 	// output some text, uses the last used colour
@@ -341,10 +324,13 @@ void Application2D::draw()
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
 	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, SCREEN_HEIGHT - 32);
 
-	sprintf_s(fps, 32, "Physics FPS: %i", m_physicsScene->GetFPS());
+	sprintf_s(fps, 32, "Physics FPS: %i", m_physicsScene->GetFPS()); // Physics FPS unlikely to drop during normal gameplay unless doing a significant amount of physics calculations per frame.
 	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, SCREEN_HEIGHT - 64);
 
 	m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, SCREEN_HEIGHT - 96);
+
+	if (GLOBALS::g_DEBUG == true)
+		m_2dRenderer->drawText(GLOBALS::g_font, "DEBUG VIEW!", 0, SCREEN_HEIGHT - 128);
 
 	// done drawing sprites
 	m_2dRenderer->end();
@@ -352,6 +338,7 @@ void Application2D::draw()
 
 glm::vec2 Application2D::ScreenToWorld(glm::vec2 screenPosition)
 {
+	// Screen space -> World space transformation.
 	glm::vec2 worldPosition = screenPosition;
 	worldPosition.x -= SCREEN_WIDTH / 2;
 	worldPosition.y -= SCREEN_HEIGHT / 2;
@@ -360,11 +347,12 @@ glm::vec2 Application2D::ScreenToWorld(glm::vec2 screenPosition)
 	return worldPosition;
 }
 
-void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other)
+void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other) // Callback function.
 {
 	Ball *hole = dynamic_cast<Ball *>(collisionObj);
 	Ball *ball = dynamic_cast<Ball *>(other);
 
+	// Do this when ball is potted.
 	if (ball != nullptr)
 	{
 		ball->SetKinematic(true);
