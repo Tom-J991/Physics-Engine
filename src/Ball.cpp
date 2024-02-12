@@ -15,6 +15,8 @@ Ball::Ball(glm::vec2 position, glm::vec2 velocity, float mass, float orientation
 	, m_texture(texture)
 	, m_number(number)
 	, m_hasShadow(hasShadow)
+	, m_initialPosition(position)
+	, m_initialRadius(radius)
 { 
 	// Load extra resources.
 	if (m_hasShadow)
@@ -140,6 +142,27 @@ void Ball::Draw()
 	{
 		aie::Gizmos::add2DCircle(m_position, m_radius, 24, { 0.0f, 1.0f, 1.0f, 0.0f });
 	}
+}
+
+void Ball::ResetPosition()
+{
+	m_fadeToBlack = { 1, 1, 1, 1 };
+
+	m_velocity = { 0, 0 };
+	m_position = m_initialPosition;
+	m_radius = m_initialRadius;
+	m_orientation = 0.0f;
+	m_caught = false;
+
+	ballDragging = false;
+	ballOffset = previousBallPos = { 0, 0 };
+	dragDisplacement = { 0, 0 };
+
+	m_lerpPoint = { 0, 0 };
+	m_lerpSnap = false;
+	m_isLerping = false;
+
+	SetKinematic(false);
 }
 
 void Ball::LerpToPoint(glm::vec2 point, float lerpSpeed, float lerpThreshold, bool snapOnFinish)

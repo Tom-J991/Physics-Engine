@@ -14,6 +14,8 @@ public:
 	virtual void FixedUpdate(float timeStep) override;
 	virtual void Draw() override;
 
+	virtual void ResetPosition() override;
+	
 	void SetCaught(const bool caught) { m_caught = caught; }
 
 	bool IsCaught() const { return m_caught; }
@@ -36,6 +38,9 @@ protected:
 	
 	int m_number = -1;
 	bool m_caught = false; // Has the ball been caught? (potted)
+
+	glm::vec2 m_initialPosition;
+	float m_initialRadius;
 
 	glm::vec4 m_fadeToBlack = { 1, 1, 1, 1 }; // Fade color.
 

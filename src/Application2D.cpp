@@ -48,6 +48,20 @@ aie::Texture *poolTableShadow;
 aie::Texture *shadowImg;
 aie::Texture **ballTextures;
 
+FMOD_SOUND *jazzyBGM = nullptr;
+
+FMOD_SOUND *ballStrikeSND = nullptr;
+FMOD_SOUND *ballStrikeSoftSND = nullptr;
+
+FMOD_CHANNEL *musicChannel = nullptr;
+FMOD_CHANNEL *ambientChannel = nullptr;
+FMOD_CHANNEL *sfxChannel = nullptr;
+
+FMOD_CHANNELGROUP *musicChannelGroup = nullptr;
+FMOD_CHANNELGROUP *sfxChannelGroup = nullptr;
+
+FMOD_DSP *reverbDSP = nullptr;
+
 int GetBallNumber()
 {
 	int randomN = rand() % 16;
@@ -73,13 +87,19 @@ bool Application2D::startup()
 	srand((unsigned int)time(nullptr)); // Set random seed.
 
 	// Setup FMOD.
-	FMOD_RESULT result;
+	FMOD_RESULT fmodResult;
 	m_fmodSystem = nullptr;
-	result = FMOD_System_Create(&m_fmodSystem, FMOD_VERSION);
-
-	if (result != FMOD_OK)
+	fmodResult = FMOD_System_Create(&m_fmodSystem, FMOD_VERSION);
+	if (fmodResult != FMOD_OK)
 	{
-		std::printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+		std::printf("FMOD error! (%d) %s\n", fmodResult, FMOD_ErrorString(fmodResult));
+		return false;
+	}
+
+	fmodResult = FMOD_System_Init(m_fmodSystem, 256, FMOD_INIT_NORMAL, nullptr);
+	if (fmodResult != FMOD_OK)
+	{
+		std::printf("FMOD error! (%d) %s\n", fmodResult, FMOD_ErrorString(fmodResult));
 		return false;
 	}
 
@@ -116,6 +136,26 @@ bool Application2D::startup()
 	}
 
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
+
+	// Audio.
+	// TODO: Error Checking.
+	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSP);
+	FMOD_DSP_SetWetDryMix(reverbDSP, 0.5f, 0.5f, 0.0f);
+
+	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "Music", &musicChannelGroup);
+	FMOD_ChannelGroup_SetVolume(musicChannelGroup, 0.25f);
+
+	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX", &sfxChannelGroup);
+	FMOD_ChannelGroup_SetVolume(sfxChannelGroup, 0.8f);
+	FMOD_ChannelGroup_AddDSP(sfxChannelGroup, 0, reverbDSP);
+
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/bgm/jazzy_bgm.mp3", FMOD_DEFAULT | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, nullptr, &jazzyBGM);
+	FMOD_Sound_SetLoopCount(jazzyBGM, -1);
+
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike.mp3", FMOD_DEFAULT, nullptr, &ballStrikeSND);
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike_soft.mp3", FMOD_DEFAULT, nullptr, &ballStrikeSoftSND);
+
+	FMOD_System_PlaySound(m_fmodSystem, jazzyBGM, musicChannelGroup, false, &musicChannel);
 
 	// Setup scene.
 	m_physicsScene = new PhysicsScene();
@@ -181,8 +221,10 @@ bool Application2D::startup()
 		boxCornerUM1, boxCornerUM2, boxCornerBM1, boxCornerBM2 });
 
 	// Game objects.
-	cueBall = new Ball({ 0, -20 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
+	cueBall = new Ball({ 0, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
 	spring = new Spring(nullptr, cueBall, 8, 32, 128, { 0, 20 });
+
+	cueBall->collisionCallback = std::bind(&Application2D::BallCollided, this, std::placeholders::_1, std::placeholders::_2);
 
 	int count = 5; // Amount of steps in the triangle.
 	for (int i = (count-1); i >= 0; --i) // Setup ball triangle.
@@ -210,6 +252,8 @@ bool Application2D::startup()
 				4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 
 				radius, num, tex, m_2dRenderer);
 			newBall->SetRotationLock(true);
+
+			newBall->collisionCallback = std::bind(&Application2D::BallCollided, this, std::placeholders::_1, std::placeholders::_2);
 
 			m_physicsScene->AddActor(newBall);
 
@@ -257,15 +301,36 @@ void Application2D::shutdown()
 	for (int i = 0; i < 16; ++i)
 	{
 		delete ballTextures[i];
+		ballTextures[i] = nullptr;
 	}
 	delete[] ballTextures;
+	ballTextures = nullptr;
 
 	delete shadowImg;
+	shadowImg = nullptr;
 	delete poolTable;
+	poolTable = nullptr;
 	delete poolTableShadow;
+	poolTableShadow = nullptr;
 	delete backgroundImg;
+	backgroundImg = nullptr;
 
 	delete GLOBALS::g_font;
+	GLOBALS::g_font = nullptr;
+
+	// Cleanup Audio.
+	FMOD_Sound_Release(ballStrikeSND);
+	ballStrikeSND = nullptr;
+
+	FMOD_ChannelGroup_Release(musicChannelGroup);
+	FMOD_ChannelGroup_Release(sfxChannelGroup);
+	musicChannelGroup = nullptr;
+	sfxChannelGroup = nullptr;
+
+	// Shutdown FMOD.
+	FMOD_System_Close(m_fmodSystem);
+	FMOD_System_Release(m_fmodSystem);
+	m_fmodSystem = nullptr;
 }
 
 void Application2D::update(float deltaTime) 
@@ -276,6 +341,19 @@ void Application2D::update(float deltaTime)
 
 	// Update the Physics scene.
 	m_physicsScene->Update(deltaTime);
+
+	// Update FMOD.
+	FMOD_System_Update(m_fmodSystem);
+
+	// Reset.
+	if (input->wasKeyReleased(aie::INPUT_KEY_R))
+	{
+		cueBall->ResetPosition();
+		for (Ball *ball : billiards)
+		{
+			ball->ResetPosition();
+		}
+	}
 
 	// Toggle debug.
 	if (input->wasKeyReleased(aie::INPUT_KEY_P))
@@ -359,7 +437,26 @@ void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other
 		ball->lerpFinishCallback = [=](PhysicsObject *obj)
 		{
 			ball->SetCaught(true);
+			if (GLOBALS::g_carrying == ball)
+				GLOBALS::g_carrying = nullptr;
 		};
 		ball->LerpToPoint(hole->GetPosition(), 8.0f, 0.1f);
+	}
+}
+
+void Application2D::BallCollided(PhysicsObject *collisionObj, PhysicsObject *other)
+{
+	Ball *collBall = dynamic_cast<Ball *>(collisionObj);
+	Ball *otherBall = dynamic_cast<Ball *>(other);
+	if (collBall != nullptr && otherBall != nullptr)
+	{
+		if (glm::length(collBall->GetVelocity()) <= 5.0f)
+		{
+			FMOD_System_PlaySound(m_fmodSystem, ballStrikeSoftSND, sfxChannelGroup, false, &sfxChannel);
+		}
+		else
+		{
+			FMOD_System_PlaySound(m_fmodSystem, ballStrikeSND, sfxChannelGroup, false, &sfxChannel);
+		}
 	}
 }

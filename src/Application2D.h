@@ -27,6 +27,8 @@ public:
 private:
 	void BallInHole(PhysicsObject *collisionObj, PhysicsObject *other); // Callback function.
 
+	void BallCollided(PhysicsObject *collisionObj, PhysicsObject *other);
+
 protected:
 	aie::Renderer2D *m_2dRenderer = nullptr;
 
