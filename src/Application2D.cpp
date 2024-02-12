@@ -21,10 +21,12 @@
 
 #include "Ball.h"
 
-const float extents = 100;
 static float aspectRatio;
 
 const float physicsTimeStep = 1 / 144.0f;
+
+float tempPoolTableWidth;
+float tempPoolTableHeight;
 
 Ball *cueBall; // All these instances get deleted by the physics scene when the physics scene is deleted.
 Spring *spring;
@@ -75,8 +77,18 @@ int GetBallNumber()
 	return randomN;
 }
 
+unsigned int Application2D::m_windowWidth = 0;
+unsigned int Application2D::m_windowHeight = 0;
+
+float Application2D::m_extents = 0;
+
 Application2D::Application2D() 
-{ }
+{ 
+	m_windowWidth = SCREEN_WIDTH;
+	m_windowHeight = SCREEN_HEIGHT;
+
+	m_extents = 100;
+}
 Application2D::~Application2D() 
 { }
 
@@ -104,7 +116,7 @@ bool Application2D::startup()
 	}
 
 	// Create renderer and scene.
-	aspectRatio = SCREEN_WIDTH / (float)SCREEN_HEIGHT;
+	aspectRatio = getWindowWidth() / (float)getWindowHeight();
 	aie::Gizmos::create(255U, 255U, 65535U, 65535U);
 	m_2dRenderer = new aie::Renderer2D();
 
@@ -112,6 +124,9 @@ bool Application2D::startup()
 	backgroundImg = new aie::Texture("./textures/background.jpg");
 	poolTable = new aie::Texture("./textures/table.png");
 	poolTableShadow = new aie::Texture("./textures/table_shadow.png");
+
+	tempPoolTableWidth = (m_extents - (m_extents - 140.0f));
+	tempPoolTableHeight = (m_extents - (m_extents - 140.0f)) / aspectRatio;
 
 	shadowImg = new aie::Texture("./textures/shadow.png");
 
@@ -135,7 +150,7 @@ bool Application2D::startup()
 		ballTextures[15] = new aie::Texture("./textures/balls/ball_15.png");
 	}
 
-	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 24);
+	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 18);
 
 	// Audio.
 	// TODO: Error Checking.
@@ -163,10 +178,10 @@ bool Application2D::startup()
 	m_physicsScene->SetTimeStep(physicsTimeStep);
 
 	// Table Boundaries
-	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)) / aspectRatio, 10.0f);
-	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)) / aspectRatio, 10.0f);
-	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -70.0f / aspectRatio, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)), 10.0f);
-	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -70.0f / aspectRatio, { 1, 1, 1, 0 }, (extents - (extents - 70.0f)), 10.0f);
+	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (m_extents - (m_extents - 70.0f)) / aspectRatio, 10.0f);
+	planeRight = new Plane(0.3f, { -1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (m_extents - (m_extents - 70.0f)) / aspectRatio, 10.0f);
+	planeBottom = new Plane(0.3f, { 0.0f, 1.0f }, -70.0f / aspectRatio, { 1, 1, 1, 0 }, (m_extents - (m_extents - 70.0f)), 10.0f);
+	planeTop = new Plane(0.3f, { 0.0f, -1.0f }, -70.0f / aspectRatio, { 1, 1, 1, 0 }, (m_extents - (m_extents - 70.0f)), 10.0f);
 
 	m_physicsScene->AddActors({ planeLeft, planeRight, planeBottom, planeTop });
 
@@ -241,7 +256,7 @@ bool Application2D::startup()
 			float y = j + offset;
 
 			float height = count * radius * 2;
-			glm::vec2 trianglePosition = { extents / 4, -height/2 };
+			glm::vec2 trianglePosition = { m_extents / 4, -height/2 };
 
 			int num = GetBallNumber();
 			aie::Texture *tex = ballTextures[num];
@@ -366,6 +381,12 @@ void Application2D::update(float deltaTime)
 
 void Application2D::draw() 
 {
+	m_windowWidth = getWindowWidth();
+	m_windowHeight = getWindowHeight();
+	aspectRatio = m_windowWidth / (float)m_windowHeight;
+
+	const float scaleFactor = (m_windowWidth / 2) / m_extents;
+
 	// wipe the screen to the background colour
 	clearScreen();
 
@@ -373,8 +394,8 @@ void Application2D::draw()
 	m_2dRenderer->begin();
 
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
-	m_2dRenderer->setUVRect(0, 0, 4 * aspectRatio, 4);
-	m_2dRenderer->drawSprite(backgroundImg, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 99.0f);
+	m_2dRenderer->setUVRect(0, 0, 24 / scaleFactor * aspectRatio, 24 / scaleFactor);
+	m_2dRenderer->drawSprite(backgroundImg, (float)m_windowWidth/2, (float)m_windowHeight /2, (float)m_windowWidth, (float)m_windowHeight, 0.0f, 99.0f);
 
 	m_2dRenderer->end();
 
@@ -383,32 +404,34 @@ void Application2D::draw()
 
 	// MESSY
 	// Draw pool table.
-	const float scaleFactorW = (poolTableShadow->getWidth() / (float)poolTable->getWidth());
-	const float scaleFactorH = (poolTableShadow->getHeight() / (float)poolTable->getHeight());
 	m_2dRenderer->setUVRect(0, 0, 1, 1);
-	m_2dRenderer->setRenderColour(0xFFFFFF80);
-	m_2dRenderer->drawSprite(poolTableShadow, SCREEN_WIDTH / 2 + 8, SCREEN_HEIGHT / 2 - 16, SCREEN_WIDTH * scaleFactorW - 384, SCREEN_HEIGHT * scaleFactorH - 384 / aspectRatio, 0.0f, 98.0f);
+	const float scaleFactorW = (poolTableShadow->getWidth() / (float)poolTable->getWidth()) * scaleFactor;
+	const float scaleFactorH = (poolTableShadow->getHeight() / (float)poolTable->getHeight()) * scaleFactor;
+	m_2dRenderer->setRenderColour(0xFFFFFFFF);
+	m_2dRenderer->drawSprite(poolTableShadow, (float)m_windowWidth / 2 + 8, (float)m_windowHeight / 2 - 16, tempPoolTableWidth * scaleFactorW, tempPoolTableHeight * scaleFactorH, 0.0f, 98.0f);
 	
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
-	m_2dRenderer->drawSprite(poolTable, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH - 384, SCREEN_HEIGHT - 384 / aspectRatio, 0.0f, 98.0f);
+	m_2dRenderer->drawSprite(poolTable, (float)m_windowWidth / 2, (float)m_windowHeight / 2, tempPoolTableWidth * scaleFactor, tempPoolTableHeight * scaleFactor, 0.0f, 98.0f);
 
 	m_physicsScene->Draw(); // Draw the physics scene.
 
-	aie::Gizmos::draw2D(glm::ortho<float>(-extents, extents, -extents / aspectRatio, extents / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
+	aie::Gizmos::draw2D(glm::ortho<float>(-m_extents, m_extents, -m_extents / aspectRatio, m_extents / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
 
 	// output some text, uses the last used colour
 	char fps[32];
 	sprintf_s(fps, 32, "Application FPS: %i", getFPS());
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
-	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, SCREEN_HEIGHT - 32);
+	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, (float)m_windowHeight - 32);
 
 	sprintf_s(fps, 32, "Physics FPS: %i", m_physicsScene->GetFPS()); // Physics FPS unlikely to drop during normal gameplay unless doing a significant amount of physics calculations per frame.
-	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, SCREEN_HEIGHT - 64);
+	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, (float)m_windowHeight - 64);
 
-	m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, SCREEN_HEIGHT - 96);
+	m_2dRenderer->drawText(GLOBALS::g_font, "Press R to reset all balls!", 0, (float)m_windowHeight - 96);
+	m_2dRenderer->drawText(GLOBALS::g_font, "Press P to toggle the debug view!", 0, (float)m_windowHeight - 128);
+	m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, (float)m_windowHeight - 160);
 
 	if (GLOBALS::g_DEBUG == true)
-		m_2dRenderer->drawText(GLOBALS::g_font, "DEBUG VIEW!", 0, SCREEN_HEIGHT - 128);
+		m_2dRenderer->drawText(GLOBALS::g_font, "DEBUG VIEW!", 0, (float)m_windowHeight - 192);
 
 	// done drawing sprites
 	m_2dRenderer->end();
@@ -418,11 +441,29 @@ glm::vec2 Application2D::ScreenToWorld(glm::vec2 screenPosition)
 {
 	// Screen space -> World space transformation.
 	glm::vec2 worldPosition = screenPosition;
-	worldPosition.x -= SCREEN_WIDTH / 2;
-	worldPosition.y -= SCREEN_HEIGHT / 2;
-	worldPosition.x *= 2.0f * extents / SCREEN_WIDTH;
-	worldPosition.y *= 2.0f * extents / (aspectRatio * SCREEN_HEIGHT);
+	worldPosition.x -= m_windowWidth / 2;
+	worldPosition.y -= m_windowHeight / 2;
+	worldPosition.x *= 2.0f * m_extents / m_windowWidth;
+	worldPosition.y *= 2.0f * m_extents / (aspectRatio * m_windowHeight);
 	return worldPosition;
+}
+
+glm::vec2 Application2D::TransformCoordinates(glm::vec2 worldCoordinates)
+{
+	// World space -> Screen space transformation.
+	glm::vec2 transformed;
+
+	const float extents = m_extents;
+	float scaleFactor = (m_windowWidth / 2) / extents;
+
+	glm::vec2 transformPosition;
+	transformPosition.x = worldCoordinates.x * scaleFactor;
+	transformPosition.y = worldCoordinates.y * scaleFactor;
+
+	transformed.x = transformPosition.x + (m_windowWidth / 2);
+	transformed.y = transformPosition.y + (m_windowHeight / 2);
+
+	return transformed;
 }
 
 void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other) // Callback function.
@@ -434,13 +475,14 @@ void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other
 	if (ball != nullptr)
 	{
 		ball->SetKinematic(true);
+		ball->SetIsTrigger(true);
 		ball->lerpFinishCallback = [=](PhysicsObject *obj)
 		{
 			ball->SetCaught(true);
 			if (GLOBALS::g_carrying == ball)
 				GLOBALS::g_carrying = nullptr;
 		};
-		ball->LerpToPoint(hole->GetPosition(), 8.0f, 0.1f);
+		ball->LerpToPoint(hole->GetPosition(), 8.0f, 0.05f);
 	}
 }
 
@@ -448,8 +490,14 @@ void Application2D::BallCollided(PhysicsObject *collisionObj, PhysicsObject *oth
 {
 	Ball *collBall = dynamic_cast<Ball *>(collisionObj);
 	Ball *otherBall = dynamic_cast<Ball *>(other);
+
 	if (collBall != nullptr && otherBall != nullptr)
 	{
+		if (collBall->IsTrigger() || otherBall->IsTrigger())
+			return;
+		if (collBall->IsDragging() || otherBall->IsDragging())
+			return;
+
 		if (glm::length(collBall->GetVelocity()) <= 5.0f)
 		{
 			FMOD_System_PlaySound(m_fmodSystem, ballStrikeSoftSND, sfxChannelGroup, false, &sfxChannel);

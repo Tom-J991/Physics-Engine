@@ -24,6 +24,13 @@ public:
 
 	static glm::vec2 ScreenToWorld(glm::vec2 screenPosition);
 
+	static glm::vec2 TransformCoordinates(glm::vec2 worldCoordinates);
+
+	static unsigned int GetWindowWidth() { return m_windowWidth; }
+	static unsigned int GetWindowHeight() { return m_windowHeight; }
+
+	static float GetExtents() { return m_extents; }
+
 private:
 	void BallInHole(PhysicsObject *collisionObj, PhysicsObject *other); // Callback function.
 
@@ -35,5 +42,10 @@ protected:
 	PhysicsScene *m_physicsScene = nullptr;
 	
 	FMOD_SYSTEM *m_fmodSystem = nullptr;
+
+	static unsigned int m_windowWidth;
+	static unsigned int m_windowHeight;
+
+	static float m_extents;
 
 };

@@ -28,7 +28,7 @@ void OBB::Draw()
 	glm::vec2 p2 = m_position + GetLocalX() * m_extents.x - GetLocalY() * m_extents.y;
 	glm::vec2 p3 = m_position - GetLocalX() * m_extents.x + GetLocalY() * m_extents.y;
 	glm::vec2 p4 = m_position + GetLocalX() * m_extents.x + GetLocalY() * m_extents.y;
-	aie::Gizmos::add2DTri(p1, p2, p4, drawColor);
+	aie::Gizmos::add2DTri(p1, p2, p4, drawColor); // BUG: For some reason these gizmos can just randomly stop drawing, collision/physics still works.
 	aie::Gizmos::add2DTri(p1, p4, p3, drawColor);
 }
 

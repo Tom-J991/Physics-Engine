@@ -143,7 +143,7 @@ void RigidBody::ResolveCollision(RigidBody *actor2, glm::vec2 contact, glm::vec2
 
 		float deltaKineticEnergy = kineticEnergy - initialKineticEnergy;
 		if (deltaKineticEnergy > kineticEnergy * 0.01f)
-			std::cout << "Kinetic Energy discrepancy greater than 1%";
+			std::cout << "Kinetic Energy discrepancy greater than 1%" << std::endl;
 	}
 
 	if (penetration > 0)

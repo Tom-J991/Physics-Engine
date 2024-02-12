@@ -49,36 +49,36 @@ void Ball::FixedUpdate(float timeStep)
 		{
 			if (IsInside(mouseInWorld)) // Is the mouse overlapping the ball?
 			{
-				if (ballDragging == false && GLOBALS::g_carrying == nullptr && input->isMouseButtonDown(0)) // Has just clicked on ball, not carrying any other object.
+				if (m_ballDragging == false && GLOBALS::g_carrying == nullptr && input->isMouseButtonDown(0)) // Has just clicked on ball, not carrying any other object.
 				{
 					// Set is carrying.
 					GLOBALS::g_carrying = this;
-					ballDragging = true;
+					m_ballDragging = true;
 
 					SetVelocity({ 0, 0 }); // Reset velocity.
-					ballOffset = GetPosition() - mouseInWorld; // Get offset from cursor so it doesn't snap directly to cursor position, looks awkward otherwise.
+					m_ballOffset = GetPosition() - mouseInWorld; // Get offset from cursor so it doesn't snap directly to cursor position, looks awkward otherwise.
 				}
 			}
-			if (input->isMouseButtonDown(0) && ballDragging == true) // Is dragging ball.
+			if (input->isMouseButtonDown(0) && m_ballDragging == true) // Is dragging ball.
 			{
 				// Move ball to new position on drag.
-				glm::vec2 newPos = mouseInWorld + ballOffset;
-				dragDisplacement = newPos - previousBallPos;
+				glm::vec2 newPos = mouseInWorld + m_ballOffset;
+				m_dragDisplacement = newPos - m_previousBallPos;
 
 				SetPosition(newPos);
 
-				previousBallPos = newPos;
+				m_previousBallPos = newPos;
 			}
-			if (input->isMouseButtonUp(0) && ballDragging == true) // Ball has been released.
+			if (input->isMouseButtonUp(0) && m_ballDragging == true) // Ball has been released.
 			{
-				glm::vec2 accel = dragDisplacement / timeStep;
+				glm::vec2 accel = m_dragDisplacement / timeStep;
 				SetVelocity(accel / GetMass()); // Throw ball when let go, keep velocity.
 				// BUG: Often velocity can annoyingly be set to zero despite the mouse movement, 
 				// possibly because the new position and the previous position can be the same on a given frame so the displacement is zero? Probably worth looking into.
 				
 				// Reset variables.
-				dragDisplacement = { 0, 0 };
-				ballDragging = false;
+				m_dragDisplacement = { 0, 0 };
+				m_ballDragging = false;
 				GLOBALS::g_carrying = nullptr;
 			}
 		}
@@ -154,15 +154,16 @@ void Ball::ResetPosition()
 	m_orientation = 0.0f;
 	m_caught = false;
 
-	ballDragging = false;
-	ballOffset = previousBallPos = { 0, 0 };
-	dragDisplacement = { 0, 0 };
+	m_ballDragging = false;
+	m_ballOffset = m_previousBallPos = { 0, 0 };
+	m_dragDisplacement = { 0, 0 };
 
 	m_lerpPoint = { 0, 0 };
 	m_lerpSnap = false;
 	m_isLerping = false;
 
 	SetKinematic(false);
+	SetIsTrigger(false);
 }
 
 void Ball::LerpToPoint(glm::vec2 point, float lerpSpeed, float lerpThreshold, bool snapOnFinish)
@@ -177,29 +178,35 @@ void Ball::LerpToPoint(glm::vec2 point, float lerpSpeed, float lerpThreshold, bo
 
 glm::vec2 Ball::TransformCoordinates(glm::vec2 coordinates)
 {
-	// Screen space -> World space transformation.
+	float windowWidth = (float)Application2D::GetWindowWidth();
+	float windowHeight = (float)Application2D::GetWindowHeight();
+
+	// World space -> Screen space transformation.
 	glm::vec2 transformed;
 
-	const float extents = 100;
-	float scaleFactor = (SCREEN_WIDTH/2) / extents;
+	const float extents = Application2D::GetExtents();
+	float scaleFactor = (windowWidth / 2) / extents;
 
 	glm::vec2 transformPosition;
 	transformPosition.x = m_position.x * scaleFactor;
-	transformPosition.y = (m_position.y) * scaleFactor;
+	transformPosition.y = m_position.y * scaleFactor;
 
-	transformed.x = transformPosition.x + (SCREEN_WIDTH/2);
-	transformed.y = transformPosition.y + (SCREEN_HEIGHT/2);
+	transformed.x = transformPosition.x + (windowWidth / 2);
+	transformed.y = transformPosition.y + (windowHeight / 2);
 
 	return transformed;
 }
 
 float Ball::TransformScale(float scale)
 {
-	// Screen space -> World space transformation.
+	float windowWidth = (float)Application2D::GetWindowWidth();
+	float windowHeight = (float)Application2D::GetWindowHeight();
+
+	// World space -> Screen space transformation.
 	float scaled = 0.0f;
 
-	const float extents = 100;
-	float scaleFactor = (SCREEN_WIDTH/2) / extents;
+	const float extents = Application2D::GetExtents();
+	float scaleFactor = (windowWidth / 2) / extents;
 	scaled = scale * scaleFactor;
 
 	return scaled;

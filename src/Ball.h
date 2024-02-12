@@ -21,6 +21,8 @@ public:
 	bool IsCaught() const { return m_caught; }
 	int GetNumber() const { return m_number; }
 
+	bool IsDragging() const { return m_ballDragging; }
+
 	void LerpToPoint(glm::vec2 point, float lerpSpeed = 4.0f, float lerpThreshold = 0.01f, bool snapOnFinish = false);
 
 public:
@@ -52,9 +54,9 @@ protected:
 	bool m_lerpSnap = false;
 
 	// Dragging ball stuff.
-	bool ballDragging = false;
-	glm::vec2 ballOffset = { 0, 0 };
-	glm::vec2 previousBallPos = ballOffset;
-	glm::vec2 dragDisplacement = { 0, 0 };
+	bool m_ballDragging = false;
+	glm::vec2 m_ballOffset = { 0, 0 };
+	glm::vec2 m_previousBallPos = m_ballOffset;
+	glm::vec2 m_dragDisplacement = { 0, 0 };
 
 };
