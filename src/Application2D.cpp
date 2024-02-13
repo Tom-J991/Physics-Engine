@@ -173,19 +173,19 @@ bool Application2D::startup()
 	// A bit messy.
 	// TODO: Error Checking.
 	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPLoudSFX); // Reverb for atmosphere.
-	FMOD_DSP_SetWetDryMix(reverbDSPLoudSFX, 0.5f, 0.5f, 0.0f);
+	FMOD_DSP_SetWetDryMix(reverbDSPLoudSFX, 0.25f, 0.333f, 0.8f);
 	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPQuietSFX);
-	FMOD_DSP_SetWetDryMix(reverbDSPQuietSFX, 0.5f, 0.5f, 0.0f);
+	FMOD_DSP_SetWetDryMix(reverbDSPQuietSFX, 0.25f, 0.333f, 0.8f);
 
 	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "Music", &musicChannelGroup);
 	FMOD_ChannelGroup_SetVolume(musicChannelGroup, 0.25f);
 
 	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX Loud", &sfxLoudChannelGroup);
-	FMOD_ChannelGroup_SetVolume(sfxLoudChannelGroup, 0.8f);
+	FMOD_ChannelGroup_SetVolume(sfxLoudChannelGroup, 0.75f);
 	FMOD_ChannelGroup_AddDSP(sfxLoudChannelGroup, 0, reverbDSPLoudSFX);
 
 	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX Quiet", &sfxQuietChannelGroup);
-	FMOD_ChannelGroup_SetVolume(sfxQuietChannelGroup, 0.64f);
+	FMOD_ChannelGroup_SetVolume(sfxQuietChannelGroup, 0.5f);
 	FMOD_ChannelGroup_AddDSP(sfxQuietChannelGroup, 0, reverbDSPQuietSFX);
 
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/bgm/jazzy_bgm.mp3", FMOD_DEFAULT | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, nullptr, &jazzyBGM);
@@ -316,13 +316,14 @@ bool Application2D::startup()
 
 	// Setup holes.
 	// MESSY
-	const float holeRadius = 3.5f;
-	holeTrigger1 = new Ball({ 0, 33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 0, shadowImg, m_2dRenderer, false);
-	holeTrigger2 = new Ball({ 0, -33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 1, shadowImg, m_2dRenderer, false);
-	holeTrigger3 = new Ball({ -63.5f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 2, shadowImg, m_2dRenderer, false);
-	holeTrigger4 = new Ball({ 62.45f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 3, shadowImg, m_2dRenderer, false);
-	holeTrigger5 = new Ball({ -63.5f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 4, shadowImg, m_2dRenderer, false);
-	holeTrigger6 = new Ball({ 62.45f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 5, shadowImg, m_2dRenderer, false);
+	const float sideHoleRadius = 3.25f;
+	const float middleHoleRadius = 2.75f;
+	holeTrigger1 = new Ball({ 0, 33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, middleHoleRadius, 0, shadowImg, m_2dRenderer, false);
+	holeTrigger2 = new Ball({ 0, -33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, middleHoleRadius, 1, shadowImg, m_2dRenderer, false);
+	holeTrigger3 = new Ball({ -63.5f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, sideHoleRadius, 2, shadowImg, m_2dRenderer, false);
+	holeTrigger4 = new Ball({ 62.45f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, sideHoleRadius, 3, shadowImg, m_2dRenderer, false);
+	holeTrigger5 = new Ball({ -63.5f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, sideHoleRadius, 4, shadowImg, m_2dRenderer, false);
+	holeTrigger6 = new Ball({ 62.45f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, sideHoleRadius, 5, shadowImg, m_2dRenderer, false);
 
 	holeTrigger1->SetKinematic(true); // I hate this lol
 	holeTrigger1->SetIsTrigger(true);
