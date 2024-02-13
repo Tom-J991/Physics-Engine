@@ -20,7 +20,7 @@ Ball::Ball(glm::vec2 position, glm::vec2 velocity, float mass, float orientation
 { 
 	// Load extra resources.
 	if (m_hasShadow)
-		m_shadowTexture = new aie::Texture("./textures/shadow.png");
+		m_shadowTexture = new aie::Texture("./textures/shadow.png"); // Allocating this for each ball isn't very good, lol.
 }
 Ball::~Ball()
 { 

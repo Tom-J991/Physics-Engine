@@ -137,6 +137,7 @@ bool Application2D::startup()
 	m_2dRenderer = new aie::Renderer2D();
 
 	// Load resources.
+	// TODO: A proper resource manager.
 	backgroundImg = new aie::Texture("./textures/background.jpg");
 	poolTable = new aie::Texture("./textures/table.png");
 	poolTableShadow = new aie::Texture("./textures/table_shadow.png");
@@ -168,7 +169,7 @@ bool Application2D::startup()
 
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 18);
 
-	// Load Audio.
+	// Load and Setup Audio.
 	// A bit messy.
 	// TODO: Error Checking.
 	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPLoudSFX); // Reverb for atmosphere.
@@ -270,7 +271,8 @@ bool Application2D::startup()
 		boxCornerUM1, boxCornerUM2, boxCornerBM1, boxCornerBM2 });
 
 	// Game objects.
-	cueBall = new Ball({ 0, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
+	const float drag = 0.8f;
+	cueBall = new Ball({ 0, 0 }, { 0, 0 }, 4.0f, 0.0f, 0.0f, drag, drag, 0.8f, 2.0f, 0, ballTextures[0], m_2dRenderer);
 	spring = new Spring(nullptr, cueBall, 8, 32, 128, { 0, 20 });
 
 	cueBall->collisionCallback = std::bind(&Application2D::BallCollided, this, std::placeholders::_1, std::placeholders::_2);
@@ -300,7 +302,7 @@ bool Application2D::startup()
 			Ball *newBall = new Ball(
 				trianglePosition + glm::vec2(x * radius * 2, y * radius * 2 ),
 				{ 0, 0 },
-				4.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.8f, 
+				4.0f, 0.0f, 0.0f, drag, drag, 0.8f,
 				radius, num, tex, m_2dRenderer);
 			newBall->SetRotationLock(true);
 
