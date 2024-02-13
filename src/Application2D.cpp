@@ -21,15 +21,16 @@
 
 #include "Ball.h"
 
-static float aspectRatio;
+static bool toggleInfoText = true;
 
-const float physicsTimeStep = 1 / 144.0f;
+static float aspectRatio;
 
 float tempPoolTableWidth;
 float tempPoolTableHeight;
 
-int pottedCount[6];
+int pottedCount[6]; // Holds how many balls have been potted in each hole.
 
+// Game Objects.
 Ball *cueBall; // All these instances get deleted by the physics scene when the physics scene is deleted.
 Spring *spring;
 Plane *planeLeft;
@@ -46,6 +47,7 @@ Ball *holeTrigger6;
 
 std::vector<Ball*> billiards;
 
+// A bunch of resources.
 aie::Texture *backgroundImg;
 aie::Texture *poolTable;
 aie::Texture *poolTableShadow;
@@ -67,18 +69,19 @@ FMOD_SOUND *ballHitWall1SND = nullptr;
 FMOD_SOUND *pottedEmptySND = nullptr;
 FMOD_SOUND *pottedSND = nullptr;
 
+// FMOD Stuff.
 FMOD_CHANNEL *musicChannel = nullptr;
 FMOD_CHANNEL *ambientChannel = nullptr;
 FMOD_CHANNEL *sfxChannel = nullptr;
 
 FMOD_CHANNELGROUP *musicChannelGroup = nullptr;
 FMOD_CHANNELGROUP *sfxLoudChannelGroup = nullptr;
-FMOD_CHANNELGROUP *sfxQuietChannelGroup = nullptr;
+FMOD_CHANNELGROUP *sfxQuietChannelGroup = nullptr; // 'cause some sound effects aren't as prioritized I suppose.
 
 FMOD_DSP *reverbDSPLoudSFX = nullptr;
-FMOD_DSP *reverbDSPQuietSFX = nullptr;
+FMOD_DSP *reverbDSPQuietSFX = nullptr; // I guess you can't share DSP effects between channel groups, so there's a separate one here.
 
-int GetBallNumber()
+int GetBallNumber() // Utility function, makes sure the number hasn't already been picked and that it's also not zero.
 {
 	int randomN = rand() % 16;
 	if (randomN == 0)
@@ -121,7 +124,6 @@ bool Application2D::startup()
 		std::printf("FMOD error! (%d) %s\n", fmodResult, FMOD_ErrorString(fmodResult));
 		return false;
 	}
-
 	fmodResult = FMOD_System_Init(m_fmodSystem, 256, FMOD_INIT_NORMAL, nullptr);
 	if (fmodResult != FMOD_OK)
 	{
@@ -166,10 +168,10 @@ bool Application2D::startup()
 
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 18);
 
-	// Audio.
+	// Load Audio.
 	// A bit messy.
 	// TODO: Error Checking.
-	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPLoudSFX);
+	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPLoudSFX); // Reverb for atmosphere.
 	FMOD_DSP_SetWetDryMix(reverbDSPLoudSFX, 0.5f, 0.5f, 0.0f);
 	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPQuietSFX);
 	FMOD_DSP_SetWetDryMix(reverbDSPQuietSFX, 0.5f, 0.5f, 0.0f);
@@ -182,11 +184,11 @@ bool Application2D::startup()
 	FMOD_ChannelGroup_AddDSP(sfxLoudChannelGroup, 0, reverbDSPLoudSFX);
 
 	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX Quiet", &sfxQuietChannelGroup);
-	FMOD_ChannelGroup_SetVolume(sfxQuietChannelGroup, 0.5f);
+	FMOD_ChannelGroup_SetVolume(sfxQuietChannelGroup, 0.64f);
 	FMOD_ChannelGroup_AddDSP(sfxQuietChannelGroup, 0, reverbDSPQuietSFX);
 
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/bgm/jazzy_bgm.mp3", FMOD_DEFAULT | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, nullptr, &jazzyBGM);
-	FMOD_Sound_SetLoopCount(jazzyBGM, -1);
+	FMOD_Sound_SetLoopCount(jazzyBGM, -1); // Background music should loop infinitely.
 
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike.mp3", FMOD_DEFAULT, nullptr, &ballStrikeSND);
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike1.mp3", FMOD_DEFAULT, nullptr, &ballStrike1SND);
@@ -201,12 +203,13 @@ bool Application2D::startup()
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_potted.mp3", FMOD_DEFAULT, nullptr, &pottedSND);
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_potted_empty.mp3", FMOD_DEFAULT, nullptr, &pottedEmptySND);
 
-	FMOD_System_PlaySound(m_fmodSystem, jazzyBGM, musicChannelGroup, false, &musicChannel);
+	FMOD_System_PlaySound(m_fmodSystem, jazzyBGM, musicChannelGroup, false, &musicChannel); // Begin playing background music.
+	// TODO: Ball rolling sound, though could be annoying. Also, ambient pub chatter sounds might be a nice addition.
 
 	// Setup scene.
 	m_physicsScene = new PhysicsScene();
 	m_physicsScene->SetGravity({ 0.0f, -9.81f * 0.0f });
-	m_physicsScene->SetTimeStep(physicsTimeStep);
+	m_physicsScene->SetTimeStep(PHYSICS_TIMESTEP);
 
 	// Table Boundaries
 	planeLeft = new Plane(0.3f, { 1.0f, 0.0f }, -70.0f, { 1, 1, 1, 0 }, (m_extents - (m_extents - 70.0f)) / aspectRatio, 10.0f);
@@ -272,6 +275,8 @@ bool Application2D::startup()
 
 	cueBall->collisionCallback = std::bind(&Application2D::BallCollided, this, std::placeholders::_1, std::placeholders::_2);
 
+	// TODO: Add an actual cue stick.
+
 	int count = 5; // Amount of steps in the triangle.
 	for (int i = (count-1); i >= 0; --i) // Setup ball triangle.
 	{
@@ -317,7 +322,7 @@ bool Application2D::startup()
 	holeTrigger5 = new Ball({ -63.5f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 4, shadowImg, m_2dRenderer, false);
 	holeTrigger6 = new Ball({ 62.45f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 5, shadowImg, m_2dRenderer, false);
 
-	holeTrigger1->SetKinematic(true);
+	holeTrigger1->SetKinematic(true); // I hate this lol
 	holeTrigger1->SetIsTrigger(true);
 	holeTrigger2->SetKinematic(true);
 	holeTrigger2->SetIsTrigger(true);
@@ -434,6 +439,10 @@ void Application2D::update(float deltaTime)
 			pottedCount[i] = 0;
 	}
 
+	// Toggle info text.
+	if (input->wasKeyReleased(aie::INPUT_KEY_G))
+		toggleInfoText = !toggleInfoText;
+
 	// Toggle debug.
 	if (input->wasKeyReleased(aie::INPUT_KEY_P))
 		GLOBALS::g_DEBUG = !GLOBALS::g_DEBUG;
@@ -481,21 +490,27 @@ void Application2D::draw()
 
 	aie::Gizmos::draw2D(glm::ortho<float>(-m_extents, m_extents, -m_extents / aspectRatio, m_extents / aspectRatio, -1.0f, 1.0f)); // Draw gizmos.
 
-	// output some text, uses the last used colour
-	char fps[32];
-	sprintf_s(fps, 32, "Application FPS: %i", getFPS());
-	m_2dRenderer->setRenderColour(0xFFFFFFFF);
-	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, (float)m_windowHeight - 32);
+	if (toggleInfoText)
+	{
+		// output some text, uses the last used colour
+		char fps[32];
+		sprintf_s(fps, 32, "Application FPS: %i", getFPS());
+		m_2dRenderer->setRenderColour(0xFFFFFFFF);
+		m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, (float)m_windowHeight - 32);
 
-	sprintf_s(fps, 32, "Physics FPS: %i", m_physicsScene->GetFPS()); // Physics FPS unlikely to drop during normal gameplay unless doing a significant amount of physics calculations per frame.
-	m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, (float)m_windowHeight - 64);
+		sprintf_s(fps, 32, "Physics FPS: %i", m_physicsScene->GetFPS()); // Physics FPS unlikely to drop during normal gameplay unless doing a significant amount of physics calculations per frame.
+		m_2dRenderer->drawText(GLOBALS::g_font, fps, 0, (float)m_windowHeight - 64);
 
-	m_2dRenderer->drawText(GLOBALS::g_font, "Press R to reset all balls!", 0, (float)m_windowHeight - 96);
-	m_2dRenderer->drawText(GLOBALS::g_font, "Press P to toggle the debug view!", 0, (float)m_windowHeight - 128);
-	m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, (float)m_windowHeight - 160);
+		m_2dRenderer->drawText(GLOBALS::g_font, "Hold left click on a ball to drag it, ", 0, (float)m_windowHeight - 96);
+		m_2dRenderer->drawText(GLOBALS::g_font, "release left click to throw it!", 0, (float)m_windowHeight - (96+18));
+		m_2dRenderer->drawText(GLOBALS::g_font, "Press G to toggle this text!", 0, (float)m_windowHeight - (160-18));
+		m_2dRenderer->drawText(GLOBALS::g_font, "Press P to toggle the debug view!", 0, (float)m_windowHeight - (192-18));
+		m_2dRenderer->drawText(GLOBALS::g_font, "Press R to reset all balls!", 0, (float)m_windowHeight - (224-18));
+		m_2dRenderer->drawText(GLOBALS::g_font, "Press ESC to quit!", 0, (float)m_windowHeight - (256-18));
 
-	if (GLOBALS::g_DEBUG == true)
-		m_2dRenderer->drawText(GLOBALS::g_font, "DEBUG VIEW!", 0, (float)m_windowHeight - 192);
+		if (GLOBALS::g_DEBUG == true)
+			m_2dRenderer->drawText(GLOBALS::g_font, "DEBUG VIEW!", 0, (float)m_windowHeight - (320-18));
+	}
 
 	// done drawing sprites
 	m_2dRenderer->end();

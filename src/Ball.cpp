@@ -38,6 +38,7 @@ void Ball::FixedUpdate(float timeStep)
 {
 	aie::Input *input = aie::Input::getInstance();
 
+	// TODO: Ball dragging should probably be temporary until I get an actual cue stick working.
 	if (IsTrigger() == false) // Don't do dragging if ball is a trigger.
 	{
 		int mouseX, mouseY;
