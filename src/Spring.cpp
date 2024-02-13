@@ -19,17 +19,19 @@ Spring::~Spring()
 
 void Spring::FixedUpdate(float timeStep)
 {
-	if (m_body1 == nullptr && m_body2 == nullptr)
+	if (m_body1 == nullptr && m_body2 == nullptr) // Can't really do anything if both bodies are null.
 		return;
 
 	glm::vec2 relativeVelocity;
 
+	// Get the world coordinates of the end of the springs.
 	glm::vec2 p1 = GetFirstContact();
 	glm::vec2 p2 = GetSecondContact();
 
 	float length = glm::distance(p1, p2);
 	glm::vec2 direction = glm::normalize(p2 - p1);
 
+	// Apply damping.
 	if (m_body1 == nullptr)
 		relativeVelocity = m_body2->GetVelocity();
 	else if (m_body2 == nullptr)

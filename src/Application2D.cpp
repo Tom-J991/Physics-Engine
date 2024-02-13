@@ -28,6 +28,8 @@ const float physicsTimeStep = 1 / 144.0f;
 float tempPoolTableWidth;
 float tempPoolTableHeight;
 
+int pottedCount[6];
+
 Ball *cueBall; // All these instances get deleted by the physics scene when the physics scene is deleted.
 Spring *spring;
 Plane *planeLeft;
@@ -53,16 +55,28 @@ aie::Texture **ballTextures;
 FMOD_SOUND *jazzyBGM = nullptr;
 
 FMOD_SOUND *ballStrikeSND = nullptr;
+FMOD_SOUND *ballStrike1SND = nullptr;
 FMOD_SOUND *ballStrikeSoftSND = nullptr;
+FMOD_SOUND *ballStrikeSoft1SND = nullptr;
+
+FMOD_SOUND *cueStrikeSND = nullptr;
+
+FMOD_SOUND *ballHitWallSND = nullptr;
+FMOD_SOUND *ballHitWall1SND = nullptr;
+
+FMOD_SOUND *pottedEmptySND = nullptr;
+FMOD_SOUND *pottedSND = nullptr;
 
 FMOD_CHANNEL *musicChannel = nullptr;
 FMOD_CHANNEL *ambientChannel = nullptr;
 FMOD_CHANNEL *sfxChannel = nullptr;
 
 FMOD_CHANNELGROUP *musicChannelGroup = nullptr;
-FMOD_CHANNELGROUP *sfxChannelGroup = nullptr;
+FMOD_CHANNELGROUP *sfxLoudChannelGroup = nullptr;
+FMOD_CHANNELGROUP *sfxQuietChannelGroup = nullptr;
 
-FMOD_DSP *reverbDSP = nullptr;
+FMOD_DSP *reverbDSPLoudSFX = nullptr;
+FMOD_DSP *reverbDSPQuietSFX = nullptr;
 
 int GetBallNumber()
 {
@@ -153,22 +167,39 @@ bool Application2D::startup()
 	GLOBALS::g_font = new aie::Font("./font/consolas.ttf", 18);
 
 	// Audio.
+	// A bit messy.
 	// TODO: Error Checking.
-	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSP);
-	FMOD_DSP_SetWetDryMix(reverbDSP, 0.5f, 0.5f, 0.0f);
+	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPLoudSFX);
+	FMOD_DSP_SetWetDryMix(reverbDSPLoudSFX, 0.5f, 0.5f, 0.0f);
+	fmodResult = FMOD_System_CreateDSPByType(m_fmodSystem, FMOD_DSP_TYPE_SFXREVERB, &reverbDSPQuietSFX);
+	FMOD_DSP_SetWetDryMix(reverbDSPQuietSFX, 0.5f, 0.5f, 0.0f);
 
 	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "Music", &musicChannelGroup);
 	FMOD_ChannelGroup_SetVolume(musicChannelGroup, 0.25f);
 
-	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX", &sfxChannelGroup);
-	FMOD_ChannelGroup_SetVolume(sfxChannelGroup, 0.8f);
-	FMOD_ChannelGroup_AddDSP(sfxChannelGroup, 0, reverbDSP);
+	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX Loud", &sfxLoudChannelGroup);
+	FMOD_ChannelGroup_SetVolume(sfxLoudChannelGroup, 0.8f);
+	FMOD_ChannelGroup_AddDSP(sfxLoudChannelGroup, 0, reverbDSPLoudSFX);
+
+	fmodResult = FMOD_System_CreateChannelGroup(m_fmodSystem, "SFX Quiet", &sfxQuietChannelGroup);
+	FMOD_ChannelGroup_SetVolume(sfxQuietChannelGroup, 0.5f);
+	FMOD_ChannelGroup_AddDSP(sfxQuietChannelGroup, 0, reverbDSPQuietSFX);
 
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/bgm/jazzy_bgm.mp3", FMOD_DEFAULT | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, nullptr, &jazzyBGM);
 	FMOD_Sound_SetLoopCount(jazzyBGM, -1);
 
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike.mp3", FMOD_DEFAULT, nullptr, &ballStrikeSND);
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike1.mp3", FMOD_DEFAULT, nullptr, &ballStrike1SND);
 	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike_soft.mp3", FMOD_DEFAULT, nullptr, &ballStrikeSoftSND);
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_strike_soft1.mp3", FMOD_DEFAULT, nullptr, &ballStrikeSoft1SND);
+
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/cue_strike.mp3", FMOD_DEFAULT, nullptr, &cueStrikeSND);
+
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_hit_wall.mp3", FMOD_DEFAULT, nullptr, &ballHitWallSND);
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_hit_wall1.mp3", FMOD_DEFAULT, nullptr, &ballHitWall1SND);
+
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_potted.mp3", FMOD_DEFAULT, nullptr, &pottedSND);
+	fmodResult = FMOD_System_CreateSound(m_fmodSystem, "./audio/sfx/ball_potted_empty.mp3", FMOD_DEFAULT, nullptr, &pottedEmptySND);
 
 	FMOD_System_PlaySound(m_fmodSystem, jazzyBGM, musicChannelGroup, false, &musicChannel);
 
@@ -185,7 +216,7 @@ bool Application2D::startup()
 
 	m_physicsScene->AddActors({ planeLeft, planeRight, planeBottom, planeTop });
 
-	// Table walls, unfortunately messy and a lot of values were found by trial and error.
+	// Table walls, unfortunately very messy and a lot of values were found by trial and error.
 	const int displayColl = 0;
 	OBB *boxL = new OBB({ -65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, displayColl });
 	OBB *boxR = new OBB({ 65, 0 }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.6f, { 4, 25 }, { 1, 1, 1, displayColl });
@@ -277,13 +308,14 @@ bool Application2D::startup()
 	}
 
 	// Setup holes.
+	// MESSY
 	const float holeRadius = 3.5f;
-	holeTrigger1 = new Ball({ 0, 33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger2 = new Ball({ 0, -33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger3 = new Ball({ -63.5f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger4 = new Ball({ 62.45f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger5 = new Ball({ -63.5f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
-	holeTrigger6 = new Ball({ 62.45f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, -1, shadowImg, m_2dRenderer, false);
+	holeTrigger1 = new Ball({ 0, 33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 0, shadowImg, m_2dRenderer, false);
+	holeTrigger2 = new Ball({ 0, -33.75f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 1, shadowImg, m_2dRenderer, false);
+	holeTrigger3 = new Ball({ -63.5f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 2, shadowImg, m_2dRenderer, false);
+	holeTrigger4 = new Ball({ 62.45f, 32.f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 3, shadowImg, m_2dRenderer, false);
+	holeTrigger5 = new Ball({ -63.5f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 4, shadowImg, m_2dRenderer, false);
+	holeTrigger6 = new Ball({ 62.45f, -32.1f }, { 0, 0 }, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, holeRadius, 5, shadowImg, m_2dRenderer, false);
 
 	holeTrigger1->SetKinematic(true);
 	holeTrigger1->SetIsTrigger(true);
@@ -336,11 +368,40 @@ void Application2D::shutdown()
 	// Cleanup Audio.
 	FMOD_Sound_Release(ballStrikeSND);
 	ballStrikeSND = nullptr;
+	FMOD_Sound_Release(ballStrike1SND);
+	ballStrike1SND = nullptr;
+	FMOD_Sound_Release(ballStrikeSoftSND);
+	ballStrikeSoftSND = nullptr;
+	FMOD_Sound_Release(ballStrikeSoft1SND);
+	ballStrikeSoft1SND = nullptr;
+
+	FMOD_Sound_Release(ballHitWallSND);
+	ballHitWallSND = nullptr;
+	FMOD_Sound_Release(ballHitWall1SND);
+	ballHitWall1SND = nullptr;
+
+	FMOD_Sound_Release(pottedSND);
+	pottedSND = nullptr;
+	FMOD_Sound_Release(pottedEmptySND);
+	pottedEmptySND = nullptr;
+
+	FMOD_Sound_Release(cueStrikeSND);
+	cueStrikeSND = nullptr;
+
+	FMOD_Sound_Release(jazzyBGM);
+	jazzyBGM = nullptr;
 
 	FMOD_ChannelGroup_Release(musicChannelGroup);
-	FMOD_ChannelGroup_Release(sfxChannelGroup);
+	FMOD_ChannelGroup_Release(sfxLoudChannelGroup);
+	FMOD_ChannelGroup_Release(sfxQuietChannelGroup);
 	musicChannelGroup = nullptr;
-	sfxChannelGroup = nullptr;
+	sfxLoudChannelGroup = nullptr;
+	sfxQuietChannelGroup = nullptr;
+
+	FMOD_DSP_Release(reverbDSPLoudSFX);
+	FMOD_DSP_Release(reverbDSPQuietSFX);
+	reverbDSPLoudSFX = nullptr;
+	reverbDSPQuietSFX = nullptr;
 
 	// Shutdown FMOD.
 	FMOD_System_Close(m_fmodSystem);
@@ -368,6 +429,9 @@ void Application2D::update(float deltaTime)
 		{
 			ball->ResetPosition();
 		}
+
+		for (int i = 0; i < 6; ++i)
+			pottedCount[i] = 0;
 	}
 
 	// Toggle debug.
@@ -394,7 +458,7 @@ void Application2D::draw()
 	m_2dRenderer->begin();
 
 	m_2dRenderer->setRenderColour(0xFFFFFFFF);
-	m_2dRenderer->setUVRect(0, 0, 24 / scaleFactor * aspectRatio, 24 / scaleFactor);
+	m_2dRenderer->setUVRect(0, 0, 32 / scaleFactor * aspectRatio, 32 / scaleFactor);
 	m_2dRenderer->drawSprite(backgroundImg, (float)m_windowWidth/2, (float)m_windowHeight /2, (float)m_windowWidth, (float)m_windowHeight, 0.0f, 99.0f);
 
 	m_2dRenderer->end();
@@ -474,6 +538,7 @@ void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other
 	// Do this when ball is potted.
 	if (ball != nullptr)
 	{
+		// BUG: Seems to be a bug where sometimes the ball doesn't lerp to the middle of the hole before it "disappears".
 		ball->SetKinematic(true);
 		ball->SetIsTrigger(true);
 		ball->lerpFinishCallback = [=](PhysicsObject *obj)
@@ -483,6 +548,12 @@ void Application2D::BallInHole(PhysicsObject *collisionObj, PhysicsObject *other
 				GLOBALS::g_carrying = nullptr;
 		};
 		ball->LerpToPoint(hole->GetPosition(), 8.0f, 0.05f);
+
+		FMOD_System_PlaySound(m_fmodSystem, pottedEmptySND, sfxQuietChannelGroup, false, &sfxChannel);
+		if (pottedCount[hole->GetNumber()] > 0)
+			FMOD_System_PlaySound(m_fmodSystem, pottedSND, sfxQuietChannelGroup, false, &sfxChannel);
+
+		pottedCount[hole->GetNumber()]++;
 	}
 }
 
@@ -497,14 +568,40 @@ void Application2D::BallCollided(PhysicsObject *collisionObj, PhysicsObject *oth
 			return;
 		if (collBall->IsDragging() || otherBall->IsDragging())
 			return;
+		if (collBall->IsCaught() || otherBall->IsCaught())
+			return;
 
+		// Will play the sound effects twice with the balls colliding with each other, might not be preferable.
 		if (glm::length(collBall->GetVelocity()) <= 5.0f)
 		{
-			FMOD_System_PlaySound(m_fmodSystem, ballStrikeSoftSND, sfxChannelGroup, false, &sfxChannel);
+			int r = rand() % 2;
+			if (r == 0)
+				FMOD_System_PlaySound(m_fmodSystem, ballStrikeSoftSND, sfxQuietChannelGroup, false, &sfxChannel);
+			else
+				FMOD_System_PlaySound(m_fmodSystem, ballStrikeSoft1SND, sfxQuietChannelGroup, false, &sfxChannel);
 		}
 		else
 		{
-			FMOD_System_PlaySound(m_fmodSystem, ballStrikeSND, sfxChannelGroup, false, &sfxChannel);
+			int r = rand() % 2;
+			if (r == 0)
+				FMOD_System_PlaySound(m_fmodSystem, ballStrikeSND, sfxLoudChannelGroup, false, &sfxChannel);
+			else
+				FMOD_System_PlaySound(m_fmodSystem, ballStrike1SND, sfxLoudChannelGroup, false, &sfxChannel);
 		}
+	}
+
+	OBB *otherWall = dynamic_cast<OBB *>(other);
+	if (collBall != nullptr && otherWall != nullptr)
+	{
+		if (collBall->IsTrigger() || otherWall->IsTrigger())
+			return;
+		if (collBall->IsCaught())
+			return;
+
+		int r = rand() % 2;
+		if (r == 0)
+			FMOD_System_PlaySound(m_fmodSystem, ballHitWallSND, sfxQuietChannelGroup, false, &sfxChannel);
+		else
+			FMOD_System_PlaySound(m_fmodSystem, ballHitWall1SND, sfxQuietChannelGroup, false, &sfxChannel);
 	}
 }

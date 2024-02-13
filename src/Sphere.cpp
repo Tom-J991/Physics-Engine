@@ -7,7 +7,7 @@ Sphere::Sphere(glm::vec2 position, glm::vec2 velocity, float mass, float orienta
 	, m_radius(radius)
 	, m_colour(colour)
 { 
-	m_moment = 0.5f * m_mass * m_radius * m_radius;
+	m_moment = 0.5f * m_mass * m_radius * m_radius; // Moment of inertia for circle.
 }
 Sphere::~Sphere()
 { 

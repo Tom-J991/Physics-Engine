@@ -21,7 +21,7 @@ Plane::~Plane()
 
 void Plane::FixedUpdate(float timeStep)
 {
-
+	// Not doing anything.
 }
 
 void Plane::Draw()
@@ -29,7 +29,7 @@ void Plane::Draw()
 	glm::vec4 drawColor = m_colour;
 	drawColor.a = GLOBALS::g_DEBUG ? 1.0f : m_colour.a;
 
-	if (drawColor.a <= 0)
+	if (drawColor.a <= 0) // Don't need to draw if it's gonna be invisible anyways.
 		return;
 
 	// Draws the (infinite) line as a quad.
@@ -60,18 +60,18 @@ void Plane::ResetPosition()
 #include <iostream>
 void Plane::ResolveCollision(RigidBody *actor2, glm::vec2 contact) // Calculates the impulse magnitude and impulse force against a RigidBody object and the static plane and applies it to the RigidBody at the point of contact.
 {
-	if (actor2->IsKinematic())
+	if (actor2->IsKinematic()) // Don't need to do this for static objects.
 		return;
 
-	glm::vec2 localContact = contact - actor2->GetPosition();
+	glm::vec2 localContact = contact - actor2->GetPosition(); // The position where the force will be applied from relative to the object's centre of mass.
 
-	glm::vec2 relVelocity = actor2->GetVelocity() + actor2->GetAngularVelocity() * glm::vec2(-localContact.y, localContact.x);
+	glm::vec2 relVelocity = actor2->GetVelocity() + actor2->GetAngularVelocity() * glm::vec2(-localContact.y, localContact.x); // Is just the object's velocity since the plane can't move.
 	float velocityIntoPlane = glm::dot(relVelocity, m_normal);
 
-	float r = glm::dot(localContact, glm::vec2(m_normal.y, -m_normal.x));
-	float mass0 = 1.0f / (1.0f / actor2->GetMass() + (r * r) / actor2->GetMoment());
+	float r = glm::dot(localContact, glm::vec2(m_normal.y, -m_normal.x)); // The perpendicular distance to apply the force at, Torque = F*r
+	float mass0 = 1.0f / (1.0f / actor2->GetMass() + (r * r) / actor2->GetMoment()); // The effective mass.
 
-	float elasticity = (m_elasticity + actor2->GetElasticity()) / 2.0f;
+	float elasticity = (m_elasticity + actor2->GetElasticity()) / 2.0f; // Average of each object's elasticity.
 	float impulseMag =	-(1 + elasticity) * velocityIntoPlane * mass0;  // j = (-(1+e)Vrel)*n / (1/Ma)
 	glm::vec2 force = m_normal * impulseMag;
 
@@ -79,7 +79,7 @@ void Plane::ResolveCollision(RigidBody *actor2, glm::vec2 contact) // Calculates
 
 	actor2->ApplyForce(force, contact - actor2->GetPosition());
 
-	float penetration = glm::dot(contact, m_normal) - m_distanceToOrigin;
+	float penetration = glm::dot(contact, m_normal) - m_distanceToOrigin; // Calculate penetration based on distance from the plane normal.
 	PhysicsScene::ApplyContactForces(actor2, nullptr, m_normal, penetration);
 
 	float kineticEnergy = actor2->GetKineticEnergy(); // Diagnostics.
